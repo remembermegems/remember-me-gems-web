@@ -1,0 +1,127 @@
+import { createOrder } from "@/lib/notion/orders";
+import { getStones } from "@/lib/notion/stones";
+import { getSymbols } from "@/lib/notion/symbols";
+import { CtaLink } from "@/components/CtaButton";
+import { GemCanvas } from "@/components/studio/GemCanvas";
+import { stoneSwatchColor } from "@/lib/studio/shapeGeometry";
+import type { OrderInput, Stone, Symbol } from "@/lib/notion/types";
+
+function GemSummary({ order, stones, symbols }: { order: OrderInput; stones: Stone[]; symbols: Symbol[] }) {
+  const stone = stones.find((s) => s.id === order.stoneId);
+  const symbol = symbols.find((s) => s.name === order.symbolName);
+  const stoneColor = stone ? stoneSwatchColor(stone.name, stone.colorFamily) : "#AFC4D6";
+  const years = order.birthYear || order.deathYear ? ` (${order.birthYear || "?"}–${order.deathYear || "?"})` : "";
+
+  const summary: { label: string; value: string }[] = [
+    { label: "Gemstone", value: order.stoneName },
+    { label: "Shape", value: order.shapeName },
+    { label: "How you'll carry it", value: order.carryType ?? "—" },
+    { label: "Symbol", value: order.symbolName || "—" },
+    { label: "Inlay color", value: order.inlayColor },
+    { label: "Lettering style", value: order.letteringStyle },
+    { label: "Initials", value: order.initials || "—" },
+  ];
+
+  return (
+    <div className="mb-10">
+      <div className="flex justify-center gap-8 my-10 flex-wrap">
+        <div className="text-center">
+          <GemCanvas
+            shape={order.shapeName}
+            stoneColor={stoneColor}
+            stoneImageUrl={stone?.stoneImageUrl}
+            inlayColor={order.inlayColor}
+            symbol={symbol ? { name: symbol.name, path: symbol.svgPathData, viewBox: symbol.viewBox } : null}
+            side="front"
+            maxWidth={160}
+          />
+          <p className="text-xs text-cocoa/50 mt-2">Front</p>
+        </div>
+        <div className="text-center">
+          <GemCanvas
+            shape={order.shapeName}
+            stoneColor={stoneColor}
+            stoneImageUrl={stone?.stoneImageUrl}
+            inlayColor={order.inlayColor}
+            side="back"
+            initials={order.initials}
+            letteringStyle={order.letteringStyle}
+            maxWidth={160}
+          />
+          <p className="text-xs text-cocoa/50 mt-2">Back</p>
+        </div>
+      </div>
+
+      <p className="font-body text-cocoa/80 mb-6 text-center">
+        In memory of {order.firstName} {order.lastName}
+        {years}
+      </p>
+
+      <div className="rounded-2xl bg-cream divide-y divide-cocoa/10 mb-6 text-left">
+        {summary.map((s) => (
+          <div key={s.label} className="px-5 py-3">
+            <p className="text-xs uppercase tracking-wide text-cocoa/50">{s.label}</p>
+            <p className="font-body text-cocoa">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="font-heading text-2xl text-cocoa text-center">${order.totalPrice}</p>
+    </div>
+  );
+}
+
+export default async function OrderConfirmedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ data?: string; mock?: string }>;
+}) {
+  const { data, mock } = await searchParams;
+
+  if (!data) {
+    return (
+      <div className="max-w-[600px] mx-auto px-6 py-24 text-center">
+        <h1 className="font-heading text-3xl text-cocoa mb-4">Something went wrong</h1>
+        <p className="text-cocoa/70 mb-6">We couldn&rsquo;t find your order details. Please reach out via Special Requests and we&rsquo;ll sort it out together.</p>
+        <CtaLink href="/special-requests">Contact Us</CtaLink>
+      </div>
+    );
+  }
+
+  const orders = JSON.parse(Buffer.from(data, "base64url").toString("utf-8")) as OrderInput[];
+  const [orderResults, stones, symbols] = await Promise.all([
+    Promise.all(orders.map((order) => createOrder(order))),
+    getStones(),
+    getSymbols(),
+  ]);
+
+  const grandTotal = orders.reduce((sum, o) => sum + o.totalPrice, 0);
+  const firstOrder = orders[0];
+
+  return (
+    <div className="max-w-[600px] mx-auto px-6 py-24 text-center">
+      <h1 className="font-heading text-3xl text-cocoa mb-4" style={{ color: "#4E3F35" }}>
+        Thank you.
+      </h1>
+      <p className="text-cocoa/70 mb-2">
+        {orders.length === 1
+          ? `${firstOrder.firstName}'s Remember Me Gem is on its way to being made — order ${orderResults[0].orderNumber}.`
+          : `Your ${orders.length} Remember Me Gems are on their way to being made — order ${firstOrder.orderId}.`}
+      </p>
+      {mock === "1" && (
+        <p className="text-gold text-sm mb-6">
+          (Sandbox checkout isn&rsquo;t configured yet, so this order skipped payment and was written straight to the production tracker for testing.)
+        </p>
+      )}
+
+      {orders.map((order, i) => (
+        <GemSummary key={i} order={order} stones={stones} symbols={symbols} />
+      ))}
+
+      {orders.length > 1 && <p className="font-heading text-3xl text-cocoa mb-8">Total: ${grandTotal}</p>}
+
+      <p className="text-cocoa/60 mb-10">We&rsquo;ll be in touch with next steps for sending in the ashes.</p>
+      <CtaLink href="/create-your-remember-me-gem">Start a New Gem</CtaLink>
+    </div>
+  );
+}

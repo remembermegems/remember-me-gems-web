@@ -1,0 +1,155 @@
+export type WebsitePage =
+  | "Home"
+  | "How It Works"
+  | "Why a Remember Me Gem"
+  | "How We Make Your Gem"
+  | "Our Story"
+  | "Our Promise"
+  | "FAQ"
+  | "Care"
+  | "Contact"
+  | "Create Your Remember Me Gem"
+  | "Available Gems"
+  | "Special Requests"
+  | "Symbols"
+  | "Shapes"
+  | "Privacy Policy"
+  | "Terms of Use"
+  | "Global";
+
+export type WebsiteCopySection = {
+  id: string;
+  page: WebsitePage;
+  section: string;
+  displayOrder: number;
+  label: string;
+  headline: string;
+  body: string;
+  pullQuote: string;
+  links: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  imageUrl: string | null;
+  imageNotes: string;
+  notes: string;
+};
+
+export type ConfiguratorStep =
+  | "Welcome"
+  | "In Memory Of"
+  | "Form Factor"
+  | "Stone"
+  | "Shape"
+  | "Symbol"
+  | "Back Engraving"
+  | "Inlay Color"
+  | "Review"
+  | "Customer Info"
+  | "Confirmation"
+  | "Global";
+
+export type ConfiguratorCopyRow = {
+  id: string;
+  key: string;
+  step: ConfiguratorStep;
+  type: string;
+  text: string;
+  channel: "Web" | "Event" | "Both";
+  notes: string;
+};
+
+export type Stone = {
+  id: string;
+  name: string;
+  betaPrice: number;
+  launchPrice: number;
+  largePalmStoneUpcharge: number;
+  grouping: string[];
+  colorFamily: string | null;
+  metaphysicalThemes: string[];
+  metaphysicalProperties: string;
+  stoneDescription: string;
+  compatibleInlayColors: string[];
+  shapeRestrictions: string[];
+  availableForSale: boolean;
+  premiumBadge: boolean;
+  lowStockThreshold: number | null;
+  originalQuantity: number | null;
+  stoneImageUrl: string | null;
+  polishedPhotoUrl: string | null;
+};
+
+export type Symbol = {
+  id: string;
+  name: string;
+  meaning: string;
+  grouping: string[];
+  compatibleShapes: string[];
+  svgPathData: string;
+  viewBox: string;
+  universal: boolean;
+  available: boolean;
+  customAddOn: boolean;
+  upcharge: number;
+  displayOrder: number;
+};
+
+export const SHAPE_NAMES = [
+  "Teardrop",
+  "Classic Oval",
+  "Slim Oval",
+  "Keepsake Rectangle",
+  "Tall Rectangle",
+  "Petite Rectangle",
+  "Keepsake Square",
+  "Dog Tag",
+  "Petite Dog Tag",
+  "Arrow",
+  "Shield",
+  "Oval Palm Stone",
+  "Dog Tag Palm Stone",
+] as const;
+
+export type ShapeName = (typeof SHAPE_NAMES)[number];
+
+export type CarryType = "Wear It" | "Carry It" | "Hang It";
+
+export const INLAY_COLORS = ["Natural", "Gold", "Silver", "White", "Turquoise"] as const;
+export type InlayColor = (typeof INLAY_COLORS)[number];
+
+export type LetteringStyle = "Flowing Script" | "Monument";
+
+export type OrderInput = {
+  firstName: string;
+  lastName: string;
+  birthYear?: string;
+  deathYear?: string;
+  stoneId: string;
+  stoneName: string;
+  shapeName: ShapeName;
+  carryType?: CarryType;
+  symbolName: string;
+  inlayColor: InlayColor;
+  letteringStyle: LetteringStyle;
+  initials: string;
+  addOns: string[];
+  basePrice: number;
+  totalPrice: number;
+  channel: "Web" | "Event";
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  contactPreference?: "Email" | "Phone";
+  streetAddress?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  // Set from the live global_beta_mode flag at checkout time — when true,
+  // real stone inventory isn't decremented (siblings/testers clicking
+  // through the Studio shouldn't affect real counts).
+  betaMode: boolean;
+  // Shared across every gem placed in the same checkout, so a multi-gem
+  // order's rows in "RMG Orders & Production" can be grouped even though
+  // each gem keeps its own row/status for production tracking.
+  orderId: string;
+};
