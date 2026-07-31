@@ -5,8 +5,19 @@ import { CtaLink } from "@/components/CtaButton";
 import { GemCanvas } from "@/components/studio/GemCanvas";
 import { stoneSwatchColor } from "@/lib/studio/shapeGeometry";
 import type { OrderInput, Stone, Symbol } from "@/lib/notion/types";
+import { PurchaseEvent } from "@/components/PurchaseEvent";
 
-function GemSummary({ order, stones, symbols }: { order: OrderInput; stones: Stone[]; symbols: Symbol[] }) {
+function GemSummary({
+  order,
+  stones,
+  symbols,
+  isComplimentary,
+}: {
+  order: OrderInput;
+  stones: Stone[];
+  symbols: Symbol[];
+  isComplimentary: boolean;
+}) {
   const stone = stones.find((s) => s.id === order.stoneId);
   const symbol = symbols.find((s) => s.name === order.symbolName);
   const stoneColor = stone ? stoneSwatchColor(stone.name, stone.colorFamily) : "#AFC4D6";
@@ -34,6 +45,7 @@ function GemSummary({ order, stones, symbols }: { order: OrderInput; stones: Sto
             symbol={symbol ? { name: symbol.name, path: symbol.svgPathData, viewBox: symbol.viewBox } : null}
             side="front"
             maxWidth={160}
+            stoneName={stone?.name}
           />
           <p className="text-xs text-cocoa/50 mt-2">Front</p>
         </div>
@@ -47,6 +59,7 @@ function GemSummary({ order, stones, symbols }: { order: OrderInput; stones: Sto
             initials={order.initials}
             letteringStyle={order.letteringStyle}
             maxWidth={160}
+            stoneName={stone?.name}
           />
           <p className="text-xs text-cocoa/50 mt-2">Back</p>
         </div>
@@ -66,7 +79,19 @@ function GemSummary({ order, stones, symbols }: { order: OrderInput; stones: Sto
         ))}
       </div>
 
-      <p className="font-heading text-2xl text-cocoa text-center">${order.totalPrice}</p>
+      {/* Shows the piece's real value for context, but never implies it was
+          actually charged — a $495 line under "no payment needed" would read
+          as a mistake to a family member, not a gift. */}
+      <p className="font-heading text-2xl text-cocoa text-center">
+        {isComplimentary ? (
+          <>
+            <span className="line-through text-cocoa/40 text-lg mr-2">${order.totalPrice}</span>
+            Complimentary
+          </>
+        ) : (
+          `$${order.totalPrice}`
+        )}
+      </p>
     </div>
   );
 }
@@ -74,9 +99,9 @@ function GemSummary({ order, stones, symbols }: { order: OrderInput; stones: Sto
 export default async function OrderConfirmedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ data?: string; mock?: string }>;
+  searchParams: Promise<{ data?: string; comp?: string }>;
 }) {
-  const { data, mock } = await searchParams;
+  const { data, comp } = await searchParams;
 
   if (!data) {
     return (
@@ -98,8 +123,28 @@ export default async function OrderConfirmedPage({
   const grandTotal = orders.reduce((sum, o) => sum + o.totalPrice, 0);
   const firstOrder = orders[0];
 
+  const isComplimentary = comp === "1";
+
   return (
     <div className="max-w-[600px] mx-auto px-6 py-24 text-center">
+      {/* GA4 standard purchase event (#29) — closes the funnel that
+          studio_step_view / add_to_cart / begin_checkout open. Suppressed for
+          complimentary orders: no money changed hands, so a "purchase" event
+          at sticker price would overstate revenue once real orders are mixed
+          in with family/demo pieces in the same GA4 property. */}
+      {!isComplimentary && (
+        <PurchaseEvent
+          transactionId={firstOrder.orderId}
+          value={grandTotal}
+          items={orders.map((o) => ({
+            item_id: o.stoneId,
+            item_name: o.stoneName,
+            item_category: o.shapeName,
+            price: o.totalPrice,
+            quantity: 1,
+          }))}
+        />
+      )}
       <h1 className="font-heading text-3xl text-cocoa mb-4" style={{ color: "#4E3F35" }}>
         Thank you.
       </h1>
@@ -108,17 +153,21 @@ export default async function OrderConfirmedPage({
           ? `${firstOrder.firstName}'s Remember Me Gem is on its way to being made — order ${orderResults[0].orderNumber}.`
           : `Your ${orders.length} Remember Me Gems are on their way to being made — order ${firstOrder.orderId}.`}
       </p>
-      {mock === "1" && (
+      {isComplimentary && (
         <p className="text-gold text-sm mb-6">
-          (Sandbox checkout isn&rsquo;t configured yet, so this order skipped payment and was written straight to the production tracker for testing.)
+          This one&rsquo;s a gift from our family to yours — no payment needed.
         </p>
       )}
 
       {orders.map((order, i) => (
-        <GemSummary key={i} order={order} stones={stones} symbols={symbols} />
+        <GemSummary key={i} order={order} stones={stones} symbols={symbols} isComplimentary={isComplimentary} />
       ))}
 
-      {orders.length > 1 && <p className="font-heading text-3xl text-cocoa mb-8">Total: ${grandTotal}</p>}
+      {orders.length > 1 && (
+        <p className="font-heading text-3xl text-cocoa mb-8">
+          {isComplimentary ? "Complimentary" : `Total: $${grandTotal}`}
+        </p>
+      )}
 
       <p className="text-cocoa/60 mb-10">We&rsquo;ll be in touch with next steps for sending in the ashes.</p>
       <CtaLink href="/create-your-remember-me-gem">Start a New Gem</CtaLink>

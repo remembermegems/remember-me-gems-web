@@ -92,13 +92,13 @@ export const SHAPE_GEOMETRY: Record<ShapeName, ShapeGeometry> = {
     hasGrommet: true, grometX: 111.69, grometY: 32.77, grometR: 10.2,
     symZone: { x: 24.83, y: 62.25, w: 182.08, h: 250.87 },
   },
-  "Oval Palm Stone": {
+  "Oval Touchstone": {
     W: 217.7, H: 374.17,
     clipPath: "M0.000 187.087C0.000 83.761 48.734 0.000 108.850 0.000C168.967 0.000 217.701 83.761 217.701 187.087C217.701 290.412 168.967 374.174 108.850 374.174C48.734 374.174 0.000 290.412 0.000 187.087Z",
     hasGrommet: false, grometX: 0, grometY: 0, grometR: 0,
     symZone: { x: 36.01, y: 53.82, w: 147.66, h: 269.4 },
   },
-  "Dog Tag Palm Stone": {
+  "Dog Tag Touchstone": {
     W: 231.31, H: 346.96,
     clipPath: "M64.630 3.402L166.677 3.402C200.493 3.402 227.905 30.814 227.905 64.630L227.905 282.329C227.905 316.145 200.493 343.558 166.677 343.558L64.630 343.558C30.814 343.558 3.402 316.145 3.402 282.329L3.402 64.630C3.402 30.814 30.814 3.402 64.630 3.402Z",
     hasGrommet: false, grometX: 0, grometY: 0, grometR: 0,

@@ -18,6 +18,9 @@ function row(partial: Partial<WebsiteCopySection> & Pick<WebsiteCopySection, "pa
     ctaUrl: "",
     imageUrl: null,
     imageNotes: "",
+    altText: "",
+    videoUrl: "",
+    videoFileUrl: null,
     notes: "",
     ...partial,
   };

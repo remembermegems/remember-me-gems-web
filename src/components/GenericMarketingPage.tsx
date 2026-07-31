@@ -2,18 +2,18 @@ import type { WebsitePage } from "@/lib/notion/types";
 import { getWebsiteCopy } from "@/lib/notion/websiteCopy";
 import { Hero } from "@/components/Hero";
 import { PageSection } from "@/components/PageSection";
-import { WatermarkSection } from "@/components/Watermark";
+import { LensSection } from "@/components/LensSection";
 
 // Shared renderer for the site's simpler pages: first section becomes the
 // hero, the rest flow as alternating sections. Pages with real structural
 // differences (catalogs, FAQ accordion, Studio embed) have their own components.
 export async function GenericMarketingPage({
   page,
-  watermark = false,
+  lensSections = false,
   hero = true,
 }: {
   page: WebsitePage;
-  watermark?: boolean;
+  lensSections?: boolean;
   hero?: boolean;
 }) {
   const sections = await getWebsiteCopy(page);
@@ -37,18 +37,15 @@ export async function GenericMarketingPage({
           body={heroSection.body}
           ctaLabel={heroSection.ctaLabel}
           ctaUrl={heroSection.ctaUrl}
+          videoUrl={heroSection.videoUrl}
+          videoFileUrl={heroSection.videoFileUrl}
         />
       )}
       {bodySections.map((section, i) =>
-        watermark ? (
-          <WatermarkSection
-            key={section.id}
-            side={i % 2 === 0 ? "left" : "right"}
-            tint={i % 2 === 0 ? "cream" : "white"}
-            lens={i % 2 === 0}
-          >
+        lensSections ? (
+          <LensSection key={section.id} tint={i % 2 === 0 ? "cream" : "white"} lens={i % 2 === 0}>
             <PageSection section={section} imageSide={i % 2 === 0 ? "right" : "left"} />
-          </WatermarkSection>
+          </LensSection>
         ) : (
           <PageSection key={section.id} section={section} imageSide={i % 2 === 0 ? "right" : "left"} />
         )

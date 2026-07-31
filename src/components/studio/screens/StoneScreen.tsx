@@ -5,6 +5,8 @@ import type { Stone } from "@/lib/notion/types";
 import { useStudioStore } from "@/store/studio";
 import { StepShell } from "../StepShell";
 import { CmsImage } from "@/components/CmsImage";
+import { stoneAlt } from "@/lib/altText";
+import { SelectionContinue, SelectedBadge } from "../SelectionContinue";
 import { availableStones } from "@/lib/studio/filters";
 import { COLOR_FAMILY_FALLBACK, COLOR_FAMILY_ORDER } from "@/lib/studio/shapeGeometry";
 import { copyText } from "@/lib/notion/configuratorCopy";
@@ -23,6 +25,12 @@ export function StoneScreen({
   const [colors, setColors] = useState<string[]>([]);
   const [themes, setThemes] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(store.stone?.id ?? null);
+  // Two equal entry paths into the same grid. "Resonates" starts closed so a
+  // grieving visitor is never asked to classify their grief before they can
+  // look at stones; colour starts open because it's the concrete, low-friction
+  // path and shouldn't get harder than it was. Either way the grid itself is
+  // always visible below — neither path gates it.
+  const [openPath, setOpenPath] = useState<"resonates" | "color" | null>("color");
 
   const filterableByShape = availableStones(stones, store.shape);
 
@@ -78,9 +86,40 @@ export function StoneScreen({
         className="w-full rounded-full border border-cocoa/15 bg-warm-white px-5 py-3 mb-4 font-body"
       />
 
-      <div className="mb-2">
-        <p className="text-xs uppercase tracking-wide text-cocoa/50 mb-2">{copyText(copy, "stone_filter_color_label", "View by color")}</p>
-        <div className="flex flex-wrap gap-2 mb-4">
+      {/* Equal-weight paths, "resonates" first — brand-led, but never a
+          prerequisite for browsing. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        {(
+          [
+            { id: "resonates", label: copyText(copy, "stone_filter_feeling_label", "Explore by what resonates") },
+            { id: "color", label: copyText(copy, "stone_filter_color_label", "Browse by color") },
+          ] as const
+        ).map((path) => {
+          const isOpen = openPath === path.id;
+          const activeCount = path.id === "color" ? colors.length : themes.length;
+          return (
+            <button
+              key={path.id}
+              onClick={() => setOpenPath(isOpen ? null : path.id)}
+              aria-expanded={isOpen}
+              className={`flex items-center justify-between gap-2 px-5 py-3 rounded-2xl border font-body text-sm transition-colors ${
+                isOpen ? "bg-warm-white border-cocoa/25 text-cocoa" : "bg-cream border-cocoa/15 text-cocoa/70 hover:bg-dusty-sky/20"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {path.label}
+                {activeCount > 0 && (
+                  <span className="text-[11px] bg-gold text-warm-white rounded-full px-1.5 py-0.5">{activeCount}</span>
+                )}
+              </span>
+              <span aria-hidden className="text-cocoa/40">{isOpen ? "−" : "+"}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={openPath === "color" ? "mb-6" : "hidden"}>
+        <div className="flex flex-wrap gap-2">
           {COLOR_FAMILY_ORDER.map((c) => {
             const isSelected = colors.includes(c);
             const isDisabled = !isSelected && !availableColors.has(c);
@@ -88,6 +127,7 @@ export function StoneScreen({
               <button
                 key={c}
                 onClick={() => toggle(colors, setColors, c)}
+                aria-pressed={isSelected}
                 disabled={isDisabled}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border ${
                   isSelected
@@ -109,8 +149,7 @@ export function StoneScreen({
         </div>
       </div>
 
-      <div className="mb-6">
-        <p className="text-xs uppercase tracking-wide text-cocoa/50 mb-2">{copyText(copy, "stone_filter_feeling_label", "Filter by feeling")}</p>
+      <div className={openPath === "resonates" ? "mb-6" : "hidden"}>
         <div className="flex flex-wrap gap-2">
           {allThemes.map((t) => {
             const isSelected = themes.includes(t);
@@ -119,6 +158,7 @@ export function StoneScreen({
               <button
                 key={t}
                 onClick={() => toggle(themes, setThemes, t)}
+                aria-pressed={isSelected}
                 disabled={isDisabled}
                 className={`px-3 py-1.5 rounded-full text-sm border ${
                   isSelected
@@ -134,6 +174,12 @@ export function StoneScreen({
           })}
         </div>
       </div>
+
+      {/* Signals that a tile does double duty (selects AND expands) —
+          nothing else on screen says so before the first tap. */}
+      <p className="text-center font-body text-sm text-cocoa/50 mb-4">
+        {copyText(copy, "stone_tap_hint", "Tap a stone to see details and select")}
+      </p>
 
       {groups.map((group) => {
         const groupStones = filtered.filter((s) => s.colorFamily === group);
@@ -164,10 +210,11 @@ export function StoneScreen({
                         store.setStone(stone);
                         setExpanded(stone.id);
                       }}
+                      aria-pressed={isSelected}
                       className={`text-left p-2 transition-colors ${isSelected ? "bg-warm-white rounded-t-2xl" : "bg-cream rounded-2xl hover:bg-dusty-sky/20"}`}
                     >
                       <div className="relative">
-                        <CmsImage src={stone.stoneImageUrl} alt={stone.name} label={stone.name} className="w-full aspect-square rounded-xl" />
+                        <CmsImage src={stone.stoneImageUrl} alt={stoneAlt(stone)} label={stone.name} className="w-full aspect-square rounded-xl" />
                         <div className="absolute -top-1 -left-1 flex flex-col gap-1">
                           {isLow && (
                             <span className="text-[10px] font-medium bg-cocoa text-warm-white px-1.5 py-0.5 rounded uppercase">
@@ -180,13 +227,14 @@ export function StoneScreen({
                             </span>
                           )}
                         </div>
-                        {isSelected && (
-                          <span className="absolute -top-1 -right-1 bg-gold text-warm-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            ✓
-                          </span>
-                        )}
+                        {isSelected && <SelectedBadge className="absolute -top-1 -right-1" />}
                       </div>
-                      <p className="font-heading text-sm text-cocoa mt-2 truncate">{stone.name}</p>
+                      {/* Two lines always reserved, wrapped rather than
+                          ellipsised — long names stay readable in full and
+                          every card in the row keeps the same height. */}
+                      <p className="font-heading text-sm text-cocoa mt-2 leading-tight line-clamp-2 h-[2.5em]">
+                        {stone.name}
+                      </p>
                       <p className="text-xs text-cocoa/60">
                         {copyText(copy, "stone_price_prefix", "from")} ${price}
                       </p>
@@ -199,8 +247,11 @@ export function StoneScreen({
                             {copyText(copy, "stone_price_prefix", "from")} ${betaMode ? openStone.betaPrice : openStone.launchPrice}
                           </p>
                         </div>
-                        <p className="text-xs uppercase tracking-wide text-gold mb-1">{copyText(copy, "stone_info_about", "About this stone")}</p>
-                        <p className="font-body text-cocoa/80 mb-3">{openStone.stoneDescription}</p>
+                        {/* Meaning leads, description follows — Anthony's call
+                            2026-07-28: what a stone *means* is the reason
+                            someone picks it, the physical description is
+                            supporting detail. Same order on the public
+                            Available Gemstones gallery. */}
                         <p className="text-xs uppercase tracking-wide text-gold mb-1">{copyText(copy, "stone_info_meta", "Its meaning")}</p>
                         <div className="flex flex-wrap gap-1 mb-2">
                           {openStone.metaphysicalThemes.map((t) => (
@@ -209,15 +260,10 @@ export function StoneScreen({
                             </span>
                           ))}
                         </div>
-                        <p className="font-body text-cocoa/80 mb-4">{openStone.metaphysicalProperties}</p>
-                        <div className="flex justify-end">
-                          <button
-                            onClick={store.goNext}
-                            className="px-8 py-3 rounded-full font-body font-medium text-warm-white bg-gold border border-gold transition-colors hover:bg-transparent hover:text-cocoa"
-                          >
-                            {copyText(copy, "global_next_btn", "Continue")}
-                          </button>
-                        </div>
+                        <p className="font-body text-cocoa/80 mb-3">{openStone.metaphysicalProperties}</p>
+                        <p className="text-xs uppercase tracking-wide text-gold mb-1">{copyText(copy, "stone_info_about", "About this stone")}</p>
+                        <p className="font-body text-cocoa/80 mb-4">{openStone.stoneDescription}</p>
+                        <SelectionContinue onContinue={store.goNext} copy={copy} />
                       </div>
                     )}
                   </Fragment>

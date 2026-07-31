@@ -3,6 +3,8 @@
 import { useStudioStore, type BeginChoice } from "@/store/studio";
 import { CmsImage } from "@/components/CmsImage";
 import { copyText } from "@/lib/notion/configuratorCopy";
+import { ReassuranceNote } from "../SelectionContinue";
+import { SectionDivider } from "@/components/SectionDivider";
 
 const TILE_KEYS: { choice: BeginChoice; labelKey: string; descKey: string; fallbackLabel: string; fallbackDesc: string }[] = [
   { choice: "stone", labelKey: "wheretobegin_stone_label", descKey: "wheretobegin_stone_desc", fallbackLabel: "Stone", fallbackDesc: "Start with the stone that speaks to you" },
@@ -21,7 +23,7 @@ export function WhereToBeginScreen({ copy }: { copy: Record<string, string> }) {
         <h2 className="font-heading text-3xl text-cocoa mb-2" style={{ color: "#4E3F35" }}>
           {copyText(copy, "wheretobegin_headline", "Where would you like to begin?")}
         </h2>
-        <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-gold to-blue" />
+        <SectionDivider className="mt-4" />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {TILE_KEYS.map((t) => {
@@ -40,7 +42,12 @@ export function WhereToBeginScreen({ copy }: { copy: Record<string, string> }) {
           );
         })}
       </div>
-      <div className="flex justify-center mt-10">
+      {/* No Continue here — picking a tile is the action — but this is the
+          screen where a first-timer most needs to hear that nothing is
+          locked in yet, so the note still belongs. */}
+      <ReassuranceNote copy={copy} className="text-center mt-8" />
+
+      <div className="flex justify-center mt-4">
         <button onClick={goBack} className="px-6 py-3 rounded-full font-body text-cocoa/60 hover:text-cocoa">
           {copyText(copy, "global_back_btn", "Back")}
         </button>

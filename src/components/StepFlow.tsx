@@ -1,5 +1,6 @@
 import type { WebsiteCopySection } from "@/lib/notion/types";
 import { CmsImage } from "./CmsImage";
+import { sectionAlt } from "@/lib/altText";
 
 // One continuous flowing section with a thin gold-to-blue thread connecting
 // numbered step markers — the shared layout for How It Works and How We Make
@@ -33,7 +34,7 @@ export function StepFlow({ steps }: { steps: WebsiteCopySection[] }) {
               {hasImage ? (
                 <div className="grid sm:grid-cols-2 gap-8 items-center">
                   <div className={mirrored ? "sm:order-2" : ""}>
-                    <CmsImage src={step.imageUrl} alt={label} label={step.imageNotes} aspect="aspect-[4/3]" className="rounded-2xl" />
+                    <CmsImage src={step.imageUrl} alt={sectionAlt(step)} label={step.imageNotes} aspect="aspect-[4/3]" className="rounded-2xl" />
                   </div>
                   <div className={mirrored ? "sm:order-1 sm:text-right" : ""}>
                     <h3 className="font-heading text-2xl text-cocoa mb-3" style={{ color: "#4E3F35" }}>

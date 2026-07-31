@@ -18,6 +18,9 @@ function mapRow(page: NotionPage): WebsiteCopySection {
     ctaUrl: text(page, "CTA URL"),
     imageUrl: fileUrl(page, "Image"),
     imageNotes: text(page, "Image Notes"),
+    altText: text(page, "Alt Text"),
+    videoUrl: text(page, "Video URL"),
+    videoFileUrl: fileUrl(page, "Video"),
     notes: text(page, "Notes"),
   };
 }

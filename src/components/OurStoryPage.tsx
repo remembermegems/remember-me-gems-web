@@ -5,7 +5,7 @@ import { PullQuote } from "@/components/PullQuote";
 import { LinksRow } from "@/components/LinksRow";
 import { CtaLink } from "@/components/CtaButton";
 import { DEFAULT_CTA_URL } from "@/lib/constants";
-import { WatermarkSection } from "@/components/Watermark";
+import { LensSection } from "@/components/LensSection";
 
 // A "keepsake print" photo — white matte border and soft shadow like a
 // printed photo, tilted a few degrees, drifting toward one side. Reserved
@@ -37,9 +37,9 @@ export async function OurStoryPage() {
 
   return (
     <div>
-      <Hero headline={hero?.headline || "Our Story"} />
+      <Hero headline={hero?.headline || "Our Story"} videoUrl={hero?.videoUrl} videoFileUrl={hero?.videoFileUrl} />
 
-      <WatermarkSection side="left" tint="cream" watermark className="py-16">
+      <LensSection tint="cream" className="py-16">
         <div className="max-w-[640px] mx-auto px-6">
           {partOne && (
             <>
@@ -61,7 +61,7 @@ export async function OurStoryPage() {
             </>
           )}
         </div>
-      </WatermarkSection>
+      </LensSection>
 
       {closing?.ctaLabel && (
         <div className="text-center py-16">

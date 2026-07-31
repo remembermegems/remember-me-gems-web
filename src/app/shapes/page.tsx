@@ -10,8 +10,8 @@ export default async function ShapesPage() {
 
   return (
     <div>
-      <Hero headline={intro?.headline || "Shapes"} body={intro?.body} lens />
-      <ShapeCatalog />
+      <Hero headline={intro?.headline || "Shapes"} body={intro?.body} videoUrl={intro?.videoUrl} videoFileUrl={intro?.videoFileUrl} lens />
+      <ShapeCatalog beginLabel={intro?.ctaLabel || undefined} />
     </div>
   );
 }

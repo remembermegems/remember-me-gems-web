@@ -11,7 +11,13 @@ const GROUP_QUESTIONS: Record<string, string> = {
   "Life & Spirit": "Who were they?",
 };
 
-export function SymbolCatalog({ symbols }: { symbols: Symbol[] }) {
+export function SymbolCatalog({
+  symbols,
+  beginLabel = "Begin with this symbol \u2192",
+}: {
+  symbols: Symbol[];
+  beginLabel?: string;
+}) {
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
   const groups = useMemo(() => {
@@ -59,7 +65,7 @@ export function SymbolCatalog({ symbols }: { symbols: Symbol[] }) {
                         href={`/create-your-remember-me-gem?symbol=${encodeURIComponent(symbol.name)}`}
                         className="text-blue underline text-sm"
                       >
-                        Begin with this symbol →
+                        {beginLabel}
                       </Link>
                     </div>
                   </div>

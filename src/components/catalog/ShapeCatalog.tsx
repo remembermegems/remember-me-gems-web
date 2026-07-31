@@ -8,7 +8,7 @@ import type { CarryType } from "@/lib/notion/types";
 
 const CARRY_TYPES: CarryType[] = ["Wear It", "Carry It", "Hang It"];
 
-export function ShapeCatalog() {
+export function ShapeCatalog({ beginLabel = "Begin with this shape \u2192" }: { beginLabel?: string }) {
   const [filter, setFilter] = useState<CarryType | null>(null);
 
   const shapes = SHAPES.filter((s) => !filter || s.carryTypes.includes(filter));
@@ -39,7 +39,9 @@ export function ShapeCatalog() {
         {shapes.map((shape) => (
           <div key={shape.name} className="rounded-2xl bg-cream p-4 flex items-center gap-4">
             <div className="shrink-0 flex items-center justify-center" style={{ width: 100 }}>
-              <GemCanvas shape={shape.name} stoneColor="#AFC4D6" inlayColor="Gold" maxWidth={100} />
+              {/* Decorative — the shape's name and description sit right
+                  beside it, so announcing the silhouette too just repeats. */}
+              <GemCanvas shape={shape.name} stoneColor="#AFC4D6" inlayColor="Gold" maxWidth={100} alt="" />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -56,7 +58,7 @@ export function ShapeCatalog() {
                 href={`/create-your-remember-me-gem?shape=${encodeURIComponent(shape.name)}`}
                 className="text-blue underline text-sm"
               >
-                Begin with this shape →
+                {beginLabel}
               </Link>
             </div>
           </div>

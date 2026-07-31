@@ -4,6 +4,7 @@ import type { Symbol } from "@/lib/notion/types";
 import { useStudioStore } from "@/store/studio";
 import { StepShell } from "../StepShell";
 import { SymbolTile } from "@/components/SymbolTile";
+import { SelectionContinue, SelectedBadge } from "../SelectionContinue";
 import { availableSymbols } from "@/lib/studio/filters";
 import { copyText } from "@/lib/notion/configuratorCopy";
 
@@ -25,10 +26,12 @@ export function SymbolScreen({ symbols, copy }: { symbols: Symbol[]; copy: Recor
       subhead={copyText(copy, "symbol_subtitle", "")}
       copy={copy}
       onBack={store.goBack}
-      onContinue={store.goNext}
-      continueDisabled={!store.symbol}
-      stickyContinue
     >
+      {/* Signals that a tile does double duty (selects AND expands) —
+          nothing else on screen says so before the first tap. */}
+      <p className="text-center font-body text-sm text-cocoa/50 mb-4">
+        {copyText(copy, "symbol_tap_hint", "Tap a symbol to select")}
+      </p>
       {groups.map((group) => (
         <div key={group} className="mb-8">
           <h3 className="font-heading text-xl text-center text-cocoa">{group}</h3>
@@ -39,19 +42,28 @@ export function SymbolScreen({ symbols, copy }: { symbols: Symbol[]; copy: Recor
               .map((symbol) => {
                 const isSelected = store.symbol?.id === symbol.id;
                 return (
-                  <button
+                  <div
                     key={symbol.id}
-                    onClick={() => store.setSymbol(symbol)}
-                    className={`w-full flex items-center gap-4 rounded-2xl p-4 text-left transition-colors ${
+                    className={`rounded-2xl transition-colors ${
                       isSelected ? "bg-warm-white ring-[3px] ring-gold shadow-md" : "bg-cream hover:bg-dusty-sky/20"
                     }`}
                   >
-                    <SymbolTile name={symbol.name} path={symbol.svgPathData} viewBox={symbol.viewBox} size={64} />
-                    <div className="flex-1">
-                      <p className="font-heading text-lg text-cocoa">{symbol.name}</p>
-                      <p className="font-body text-cocoa/70 text-sm">{symbol.meaning}</p>
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => store.setSymbol(symbol)}
+                      aria-pressed={isSelected}
+                      className="w-full flex items-center gap-4 p-4 text-left"
+                    >
+                      <SymbolTile name={symbol.name} path={symbol.svgPathData} viewBox={symbol.viewBox} size={64} />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-heading text-lg text-cocoa">{symbol.name}</p>
+                          {isSelected && <SelectedBadge />}
+                        </div>
+                        <p className="font-body text-cocoa/70 text-sm">{symbol.meaning}</p>
+                      </div>
+                    </button>
+                    {isSelected && <SelectionContinue onContinue={store.goNext} copy={copy} className="px-4 pb-4" />}
+                  </div>
                 );
               })}
           </div>

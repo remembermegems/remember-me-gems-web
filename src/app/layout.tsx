@@ -7,6 +7,7 @@ import { BetaBanner } from "@/components/BetaBanner";
 import { getWebsiteCopy } from "@/lib/notion/websiteCopy";
 import { getConfiguratorCopy, copyText } from "@/lib/notion/configuratorCopy";
 import { getSymbols } from "@/lib/notion/symbols";
+import { Analytics } from "@/components/Analytics";
 
 const cinzel = Cinzel({
   variable: "--font-cinzel",
@@ -50,6 +51,7 @@ export default async function RootLayout({
       className={`${cinzel.variable} ${jost.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream text-cocoa">
+        <Analytics />
         <BetaBanner show={betaMode} text={bannerText} />
         <Nav logoUrl={logoUrl} />
         <main className="flex-1">{children}</main>

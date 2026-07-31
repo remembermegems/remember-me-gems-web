@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 // Renders a Notion-hosted image when one exists; otherwise a placeholder
 // block matching Anthony's mockup convention (gray/beige tint, no broken
 // image icons). Swapping to a real photo later needs no code change —
@@ -16,8 +18,11 @@ export function CmsImage({
   aspect?: string;
 }) {
   if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} className={`${aspect} object-cover ${className}`} />;
+    return (
+      <div className={`relative ${aspect} ${className}`}>
+        <Image src={src} alt={alt} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+      </div>
+    );
   }
 
   return (

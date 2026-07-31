@@ -1,7 +1,9 @@
 import type { WebsitePage } from "@/lib/notion/types";
 import { getWebsiteCopy } from "@/lib/notion/websiteCopy";
 import { CmsImage } from "@/components/CmsImage";
+import { sectionAlt } from "@/lib/altText";
 import { PullQuote } from "@/components/PullQuote";
+import { SectionDivider } from "@/components/SectionDivider";
 import { CtaLink } from "@/components/CtaButton";
 import { DEFAULT_CTA_URL } from "@/lib/constants";
 
@@ -42,13 +44,13 @@ export async function EssayPage({ page }: { page: WebsitePage }) {
       <h1 className="font-heading text-4xl text-center text-cocoa mb-6" style={{ color: "#4E3F35" }}>
         {hero.headline}
       </h1>
-      <div className="mx-auto mb-10 h-px w-24 bg-gradient-to-r from-gold to-blue" />
+      <SectionDivider className="mb-10" />
 
       {/* This page is designed to always open with a hero image (unlike
           Our Promise/Care/Contact, which are deliberately hero-image-free) —
           show the placeholder slot regardless of whether Notion's Image Notes
           field has been filled in yet, rather than inferring it from that. */}
-      <CmsImage src={hero.imageUrl} alt={hero.headline} label={hero.imageNotes || "Hero image"} aspect="aspect-[4/3]" className="rounded-2xl mb-10" />
+      <CmsImage src={hero.imageUrl} alt={sectionAlt(hero)} label={hero.imageNotes || "Hero image"} aspect="aspect-[4/3]" className="rounded-2xl mb-10" />
 
       {hero.body && (
         <p className="font-heading italic text-2xl text-cocoa/90 text-center mb-16 leading-relaxed">{hero.body}</p>
@@ -61,7 +63,7 @@ export async function EssayPage({ page }: { page: WebsitePage }) {
           const image = hasImage ? (
             <CmsImage
               src={section.imageUrl}
-              alt={section.headline}
+              alt={sectionAlt(section)}
               label={section.imageNotes || override?.label}
               aspect="aspect-[4/3]"
               className="rounded-2xl mb-6"

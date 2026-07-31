@@ -3,12 +3,24 @@
 import { useMemo, useState } from "react";
 import type { Stone } from "@/lib/notion/types";
 import { CmsImage } from "@/components/CmsImage";
+import { stoneAlt } from "@/lib/altText";
 import { COLOR_FAMILY_FALLBACK, COLOR_FAMILY_ORDER } from "@/lib/studio/shapeGeometry";
 import Link from "next/link";
 
 const COLOR_OPTIONS = COLOR_FAMILY_ORDER;
 
-export function StoneCatalog({ stones, betaMode }: { stones: Stone[]; betaMode: boolean }) {
+// `beginLabel` comes from the Available Gems intro row's CTA Label field in
+// Notion — reusing the existing field rather than adding a new one. The
+// literal below is only the fallback for an empty Notion cell.
+export function StoneCatalog({
+  stones,
+  betaMode,
+  beginLabel = "Begin with this gemstone \u2192",
+}: {
+  stones: Stone[];
+  betaMode: boolean;
+  beginLabel?: string;
+}) {
   const [search, setSearch] = useState("");
   const [colors, setColors] = useState<string[]>([]);
   const [themes, setThemes] = useState<string[]>([]);
@@ -142,7 +154,7 @@ export function StoneCatalog({ stones, betaMode }: { stones: Stone[]; betaMode: 
                       <div className="relative shrink-0 self-start">
                         <CmsImage
                           src={stone.stoneImageUrl}
-                          alt={stone.name}
+                          alt={stoneAlt(stone)}
                           label={stone.name}
                           aspect="aspect-square"
                           className="w-28 h-28 rounded-xl"
@@ -167,7 +179,12 @@ export function StoneCatalog({ stones, betaMode }: { stones: Stone[]; betaMode: 
                             {isReadMoreOpen ? "Show less" : "Read more"}
                           </span>
                         </div>
-                        <p className="font-body text-cocoa/80 text-sm mt-2">{stone.stoneDescription}</p>
+                        {/* Meaning leads, description follows — matches the
+                            Studio's Stone screen (Anthony's call 2026-07-28).
+                            The theme tags stay always-visible as the at-a-glance
+                            meaning; the fuller "Its meaning" text stays behind
+                            Read more, but now sits above the description so the
+                            order reads the same collapsed or expanded. */}
                         <div className="flex flex-wrap gap-1 mt-2">
                           {stone.metaphysicalThemes.map((t) => (
                             <span key={t} className="text-[11px] text-cocoa/50 bg-cocoa/5 rounded-full px-2 py-0.5">
@@ -181,6 +198,7 @@ export function StoneCatalog({ stones, betaMode }: { stones: Stone[]; betaMode: 
                             <p className="font-body text-cocoa/80 text-sm">{stone.metaphysicalProperties}</p>
                           </div>
                         )}
+                        <p className="font-body text-cocoa/80 text-sm mt-3">{stone.stoneDescription}</p>
                       </div>
                     </button>
                     <div className="text-right mt-3">
@@ -188,7 +206,7 @@ export function StoneCatalog({ stones, betaMode }: { stones: Stone[]; betaMode: 
                         href={`/create-your-remember-me-gem?stone=${encodeURIComponent(stone.name)}`}
                         className="text-blue underline text-sm"
                       >
-                        Begin with this gemstone →
+                        {beginLabel}
                       </Link>
                     </div>
                   </div>

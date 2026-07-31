@@ -17,8 +17,8 @@ export default async function AvailableGemsPage() {
 
   return (
     <div>
-      <Hero headline={intro?.headline || "Available Gemstones"} body={intro?.body} lens />
-      <StoneCatalog stones={stones} betaMode={betaMode} />
+      <Hero headline={intro?.headline || "Available Gemstones"} body={intro?.body} videoUrl={intro?.videoUrl} videoFileUrl={intro?.videoFileUrl} lens />
+      <StoneCatalog stones={stones} betaMode={betaMode} beginLabel={intro?.ctaLabel || undefined} />
     </div>
   );
 }

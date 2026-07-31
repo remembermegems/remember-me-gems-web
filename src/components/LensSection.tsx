@@ -1,17 +1,3 @@
-import { HeartInfinityIcon } from "./HeartInfinityIcon";
-
-// Eternal Love mark, positioned like a tilted "bow" in a section's top
-// corner. Opacity locked at 0.65 per Anthony 2026-07-07 — the original 0.06
-// was invisible in practice (he thought the whole feature had been lost).
-export function Watermark({ side = "left" }: { side?: "left" | "right" }) {
-  return (
-    <HeartInfinityIcon
-      className={`pointer-events-none absolute top-6 ${side === "left" ? "left-6 -rotate-6" : "right-6 rotate-6"} w-24 h-16 opacity-[0.65]`}
-      color="#4E3F35"
-    />
-  );
-}
-
 // A biconvex-lens section: both edges bulge OUTWARD in this section's own
 // color, intruding into whichever plain section sits above/below it — so
 // the lens section itself reads as a lens wedged between flat neighbors,
@@ -20,6 +6,14 @@ export function Watermark({ side = "left" }: { side?: "left" | "right" }) {
 // missing was this top+bottom pairing, applied to alternating sections only
 // (not every section — the in-between ones stay flat and simply get
 // intruded upon).
+//
+// This was previously "WatermarkSection" and also painted a faint Eternal
+// Love mark in the section's top corner. That watermark was removed on
+// 2026-07-28 (punch list #6) — it read as distraction rather than flourish.
+// The component was renamed with it so the name still describes what it
+// actually does; the `side` prop went too, since it only ever positioned the
+// watermark. Replacement uses of the Eternal Love mark live in PullQuote and
+// the section divider, not here.
 function LensEdge({ position, fill }: { position: "top" | "bottom"; fill: string }) {
   return (
     <svg
@@ -37,29 +31,24 @@ function LensEdge({ position, fill }: { position: "top" | "bottom"; fill: string
   );
 }
 
-export function WatermarkSection({
-  side,
+export function LensSection({
   tint = "cream",
   lens = true,
-  watermark = true,
   className = "",
   children,
 }: {
-  side: "left" | "right";
   tint?: "cream" | "white";
   // true/false = both edges (the usual case); "top"/"bottom" = a single edge,
   // for a section with nothing plain above/below it to intrude into — e.g. a
   // page's very first section, which has only the nav above it, not another
   // section it should bulge a curve into.
   lens?: boolean | "top" | "bottom";
-  watermark?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   const fill = tint === "cream" ? "#F7F2EA" : "#FFFDF9";
   return (
     <section className={`relative ${tint === "cream" ? "bg-cream" : "bg-warm-white"} ${className}`}>
-      {watermark && <Watermark side={side} />}
       {children}
       {(lens === true || lens === "top") && <LensEdge position="top" fill={fill} />}
       {(lens === true || lens === "bottom") && <LensEdge position="bottom" fill={fill} />}

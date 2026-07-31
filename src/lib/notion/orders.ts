@@ -1,5 +1,6 @@
 import { NOTION_DB } from "./config";
-import { createPage, getPage, updatePage, hasNotionToken, num } from "./client";
+import { createPage, getPage, updatePage, hasNotionToken, num, queryAllRows } from "./client";
+import { getConfiguratorCopy, copyText } from "./configuratorCopy";
 import type { OrderInput } from "./types";
 
 // The Studio's customer-facing inlay color label ("White") and the two Notion
@@ -37,6 +38,34 @@ async function decrementStoneInventory(stoneId: string) {
   } catch (err) {
     console.warn("[orders] Failed to decrement stone inventory for", stoneId, err);
   }
+}
+
+// Separate from `global_beta_mode`, which controls price display only. This
+// flag is the one honest answer to "did a real stone just get used" —
+// confirmed with Anthony 2026-07-29 after the two got conflated: beta pricing
+// is now the real pricing shown to real family orders, so it can no longer
+// double as "this is just a test, don't touch inventory."
+//
+// Defaults to false (no decrement) when the row doesn't exist yet or Notion
+// is unreachable — the safe direction to fail in is under-decrementing
+// (fixable with a manual count correction) rather than silently draining
+// real stock during testing.
+async function liveOrdersEnabled(): Promise<boolean> {
+  const copy = await getConfiguratorCopy();
+  return copyText(copy, "global_live_orders", "false") === "true";
+}
+
+// Idempotency guard for the orders/paid webhook. Shopify retries any delivery
+// that doesn't 200 quickly and can send the same event more than once, so the
+// only thing standing between a retry and duplicate production rows is asking
+// Notion whether this order ID is already there.
+export async function findOrdersByOrderId(orderId: string): Promise<{ id: string }[]> {
+  if (!hasNotionToken()) return [];
+  const rows = await queryAllRows(NOTION_DB.orders, {
+    property: "Order ID",
+    rich_text: { equals: orderId },
+  });
+  return rows.map((r) => ({ id: r.id }));
 }
 
 export async function createOrder(input: OrderInput): Promise<{ orderNumber: string; pageId: string | null }> {
@@ -89,10 +118,8 @@ export async function createOrder(input: OrderInput): Promise<{ orderNumber: str
     ...(input.zip ? { ZIP: { rich_text: [{ text: { content: input.zip } }] } } : {}),
   });
 
-  // Per global_beta_mode's own Notion Notes: "disable inventory decrement
-  // during test orders" — siblings/testers clicking through the Studio
-  // while beta mode is on shouldn't move real stone counts.
-  if (!input.betaMode) {
+  // See liveOrdersEnabled() above — deliberately independent of beta pricing.
+  if (await liveOrdersEnabled()) {
     await decrementStoneInventory(input.stoneId);
   }
 

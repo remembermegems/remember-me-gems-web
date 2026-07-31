@@ -6,7 +6,7 @@ import type { Symbol } from "@/lib/notion/types";
 const ALL_SHAPES = [
   "Teardrop", "Classic Oval", "Slim Oval", "Keepsake Rectangle", "Tall Rectangle",
   "Petite Rectangle", "Keepsake Square", "Dog Tag", "Petite Dog Tag", "Arrow",
-  "Shield", "Oval Palm Stone", "Dog Tag Palm Stone",
+  "Shield", "Oval Touchstone", "Dog Tag Touchstone",
 ];
 
 function sym(partial: Omit<Symbol, "id" | "viewBox" | "compatibleShapes"> & { compatibleShapes?: string[] }): Symbol {

@@ -2,7 +2,7 @@ import { getStones } from "@/lib/notion/stones";
 import { getSymbols } from "@/lib/notion/symbols";
 import { getConfiguratorCopy, copyText } from "@/lib/notion/configuratorCopy";
 import { getWebsiteCopy } from "@/lib/notion/websiteCopy";
-import { Hero } from "@/components/Hero";
+import { StudioIntro } from "@/components/studio/StudioIntro";
 import { Studio } from "@/components/studio/Studio";
 import { SHAPES } from "@/lib/studio/shapes";
 import { SHAPE_NAMES, type ShapeName } from "@/lib/notion/types";
@@ -36,7 +36,7 @@ export default async function CreateYourGemPage({
 
   return (
     <div>
-      {intro && <Hero headline={intro.headline} body={intro.body} />}
+      {intro && <StudioIntro headline={intro.headline} body={intro.body} pullQuote={intro.pullQuote} />}
       <Studio
         stones={stones}
         symbols={symbols}

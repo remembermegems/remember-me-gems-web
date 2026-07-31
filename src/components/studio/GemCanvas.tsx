@@ -53,6 +53,8 @@ export function GemCanvas({
   initials = "",
   letteringStyle = "Monument",
   maxWidth = 220,
+  stoneName,
+  alt,
   // Tunable only for the vignette debug harness (web/src/app/studio-debug) —
   // every real call site uses the defaults. Values locked in by Anthony
   // 2026-07-06 via that harness — see [[project-rmg-vignette-render]].
@@ -72,6 +74,12 @@ export function GemCanvas({
   initials?: string;
   letteringStyle?: "Flowing Script" | "Monument";
   maxWidth?: number;
+  // Used to name the stone in the screen-reader description; falls back to a
+  // generic "gemstone" on placeholder tiles where none is chosen yet.
+  stoneName?: string;
+  // Full override for that description, for call sites where the surrounding
+  // copy already says more than this component can infer.
+  alt?: string;
   vignetteWidthFrac?: number;
   vignetteBlurFrac?: number;
   vignetteDarkness?: number;
@@ -251,7 +259,7 @@ export function GemCanvas({
     ctx.fill(clipRegion);
     ctx.globalCompositeOperation = "source-over";
 
-    // GROMMET — not clipped, sits above the shape. Palm stones have none.
+    // GROMMET — not clipped, sits above the shape. Touchstones have none.
     // Metal matches the selected inlay (gold inlay/natural -> gold grommet;
     // silver/white/turquoise -> silver grommet).
     if (geo.hasGrommet) {
@@ -304,9 +312,33 @@ export function GemCanvas({
 
   const scale = Math.min(1, maxWidth / geo.W);
 
+  // A canvas is an empty box to a screen reader — everything this component
+  // draws is invisible to one. Describing the gem in words, rebuilt from the
+  // same props that drive the render, means the central artifact of the whole
+  // product is actually announced, and re-announced whenever the customer
+  // changes a choice.
+  // alt="" marks the canvas decorative — used where it sits inside a control
+  // whose own text already names the thing, so a screen reader doesn't read
+  // the same shape twice.
+  const decorative = alt === "";
+  const describedStone = stoneName ?? "gemstone";
+  const description =
+    alt ||
+    (side === "front"
+      ? `${describedStone} ${shape} gem, front${symbol ? `, with the ${symbol.name} symbol inlaid in ${inlayColor.toLowerCase()}` : ""}.`
+      : `${describedStone} ${shape} gem, back${
+          initials
+            ? `, engraved with the initials ${initials.split("").join(" ")} in ${letteringStyle.toLowerCase()} lettering`
+            : ", with no initials engraved"
+        }.`);
+
   return (
     <div style={{ width: geo.W * scale, height: geo.H * scale, overflow: "hidden" }}>
-      <canvas ref={ref} style={{ width: geo.W, height: geo.H, transform: `scale(${scale})`, transformOrigin: "top left" }} />
+      <canvas
+        ref={ref}
+        {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": description })}
+        style={{ width: geo.W, height: geo.H, transform: `scale(${scale})`, transformOrigin: "top left" }}
+      />
     </div>
   );
 }

@@ -41,7 +41,7 @@ export default async function ContactPage() {
 
   return (
     <div>
-      {hero && <Hero eyebrow={hero.label} headline={hero.headline} body={hero.body} />}
+      {hero && <Hero eyebrow={hero.label} headline={hero.headline} body={hero.body} videoUrl={hero.videoUrl} videoFileUrl={hero.videoFileUrl} />}
 
       <div className="max-w-[600px] mx-auto px-6 py-12">
         <div className="grid sm:grid-cols-2 gap-4 mb-12">

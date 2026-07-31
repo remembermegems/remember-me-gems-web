@@ -31,6 +31,17 @@ export type WebsiteCopySection = {
   ctaUrl: string;
   imageUrl: string | null;
   imageNotes: string;
+  // Descriptive alt text for `imageUrl`, authored per-row in Notion. Distinct
+  // from `imageNotes` (a placeholder-era brief describing what photo *should*
+  // go here) and from reusing `headline`, which describes the section rather
+  // than the picture. Empty until Anthony fills it in alongside each upload.
+  altText: string;
+  // Video from a platform URL (YouTube/Vimeo/TikTok/Instagram) — parsed, never
+  // injected raw. See VideoEmbed.tsx.
+  videoUrl: string;
+  // Video uploaded straight into Notion (Files & media). Most robust option;
+  // MP4/H.264 only — .mov won't play in Chrome or Firefox.
+  videoFileUrl: string | null;
   notes: string;
 };
 
@@ -63,7 +74,7 @@ export type Stone = {
   name: string;
   betaPrice: number;
   launchPrice: number;
-  largePalmStoneUpcharge: number;
+  touchstoneUpcharge: number;
   grouping: string[];
   colorFamily: string | null;
   metaphysicalThemes: string[];
@@ -73,10 +84,15 @@ export type Stone = {
   shapeRestrictions: string[];
   availableForSale: boolean;
   premiumBadge: boolean;
+  featuredOnHomepage: boolean;
   lowStockThreshold: number | null;
   originalQuantity: number | null;
   stoneImageUrl: string | null;
   polishedPhotoUrl: string | null;
+  // Descriptive alt text for this stone's photos, authored in Notion.
+  // Falls back to the stone name, which names the subject but doesn't
+  // describe it — see lib/altText.ts.
+  imageAltText: string;
 };
 
 export type Symbol = {
@@ -106,8 +122,8 @@ export const SHAPE_NAMES = [
   "Petite Dog Tag",
   "Arrow",
   "Shield",
-  "Oval Palm Stone",
-  "Dog Tag Palm Stone",
+  "Oval Touchstone",
+  "Dog Tag Touchstone",
 ] as const;
 
 export type ShapeName = (typeof SHAPE_NAMES)[number];

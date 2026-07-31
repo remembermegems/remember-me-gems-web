@@ -20,7 +20,7 @@ export default async function CarePage() {
 
   return (
     <div>
-      {hero && <Hero eyebrow={hero.label} headline={hero.headline} body={hero.body} />}
+      {hero && <Hero eyebrow={hero.label} headline={hero.headline} body={hero.body} videoUrl={hero.videoUrl} videoFileUrl={hero.videoFileUrl} />}
 
       <div className="max-w-[680px] mx-auto px-6 py-16">
         {durability && (

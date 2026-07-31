@@ -5,15 +5,17 @@ import { StepFlow } from "@/components/StepFlow";
 import { PullQuote } from "@/components/PullQuote";
 import { CtaLink } from "@/components/CtaButton";
 import { DEFAULT_CTA_URL } from "@/lib/constants";
-import { WatermarkSection } from "@/components/Watermark";
+import { LensSection } from "@/components/LensSection";
+import { CmsImage } from "@/components/CmsImage";
+import { sectionAlt } from "@/lib/altText";
 
 // Shared page shell for How It Works and How We Make Your Gem — both use the
 // same connected-thread step pattern, differing only in how much closing
 // content follows the steps (see project-rmg-website-cms memory). Only How
-// It Works gets the beige+watermark treatment — pass watermark explicitly
+// It Works gets the beige lens-section treatment — pass lensSections explicitly
 // per page rather than defaulting it on, since How We Make Your Gem isn't
 // one of the three pages that treatment is locked to.
-export async function StepFlowPage({ page, watermark = false }: { page: WebsitePage; watermark?: boolean }) {
+export async function StepFlowPage({ page, lensSections = false }: { page: WebsitePage; lensSections?: boolean }) {
   const sections = await getWebsiteCopy(page);
   if (sections.length === 0) {
     return (
@@ -48,17 +50,24 @@ export async function StepFlowPage({ page, watermark = false }: { page: WebsiteP
     </div>
   );
 
+  const heroHasImage = Boolean(hero.imageUrl) || Boolean(hero.imageNotes);
+
   return (
     <div>
-      <Hero eyebrow={hero.label} headline={hero.headline} body={hero.body} />
-      {watermark ? (
+      <Hero eyebrow={hero.label} headline={hero.headline} body={hero.body} videoUrl={hero.videoUrl} videoFileUrl={hero.videoFileUrl} />
+      {heroHasImage && (
+        <div className="max-w-[640px] mx-auto px-6 pt-2 pb-10">
+          <CmsImage src={hero.imageUrl} alt={sectionAlt(hero)} label={hero.imageNotes} aspect="aspect-[4/3]" className="rounded-2xl" />
+        </div>
+      )}
+      {lensSections ? (
         <>
-          <WatermarkSection side="left" tint="cream" lens className="py-4">
+          <LensSection tint="cream" lens className="py-4">
             {stepsBlock}
-          </WatermarkSection>
-          <WatermarkSection side="right" tint="white" lens={false} className="py-4">
+          </LensSection>
+          <LensSection tint="white" lens={false} className="py-4">
             {tailBlock}
-          </WatermarkSection>
+          </LensSection>
         </>
       ) : (
         <>

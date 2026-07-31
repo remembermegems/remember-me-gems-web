@@ -1,6 +1,6 @@
 import { FALLBACK_SYMBOL } from "@/lib/studio/shapeGeometry";
 
-// Shared Eternal Love mark, used as the faint page watermark, the small
+// Shared Eternal Love mark, used as the small
 // accent above pull quotes, and the brand mark in the footer. Renders the
 // real Symbol Library path data (same source as the footer, same compound
 // outer-contour-plus-holes shape filled with fill-rule evenodd — see the

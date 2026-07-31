@@ -12,6 +12,7 @@ export const mockConfiguratorCopy: ConfiguratorCopyRow[] = [
   row("global_beta_banner", "Global", "Beta pricing — $100 off every gem while we refine the process."),
   row("global_next_btn", "Global", "Continue"),
   row("global_back_btn", "Global", "Back"),
+  row("global_reassurance_note", "Global", "You can review and change your choices at anytime."),
 
   row("inmemoryof_headline", "In Memory Of", "Tell us about the person you're honoring"),
   row("inmemoryof_subhead", "In Memory Of", "We'll keep their name close throughout this journey."),
@@ -41,7 +42,25 @@ export const mockConfiguratorCopy: ConfiguratorCopyRow[] = [
   row("inlay_special_request", "Inlay Color", "Need more than 3 characters? Make a special request", "Web"),
   row("inlay_continue_btn", "Inlay Color", "Review Your Gem"),
 
+  row("review_label_gemstone", "Review", "Gemstone"),
+  row("review_label_shape", "Review", "Shape"),
+  row("review_label_carry", "Review", "How you'll keep it close"),
+  row("review_label_symbol", "Review", "Symbol"),
+  row("review_label_inlay", "Review", "Inlay color"),
+  row("review_label_lettering", "Review", "Lettering style"),
+  row("review_label_initials", "Review", "Initials"),
+  row("review_change_link", "Review", "Change"),
+
   row("review_headline", "Review", "Review Your Gem"),
   row("review_btn", "Review", "Add to Cart"),
   row("review_dedication_template", "Review", "In memory of {fullName}{years}"),
+  // Ash-kit reassurance, Web only — the Event deploy takes ash in person, so
+  // there's no kit to mail and this block shouldn't render there.
+  row("review_next_steps_headline", "Review", "What happens next", "Web"),
+  row(
+    "review_next_steps_body",
+    "Review",
+    "After you check out, we'll mail you an ash collection kit. You'll only need about a tablespoon of your loved one's ashes, and the kit includes full step-by-step directions for everything.",
+    "Web"
+  ),
 ];

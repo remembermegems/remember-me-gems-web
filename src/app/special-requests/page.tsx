@@ -55,7 +55,7 @@ export default async function SpecialRequestsPage() {
 
   return (
     <div>
-      <Hero headline={hero?.headline || "Special Requests"} body={hero?.body} />
+      <Hero headline={hero?.headline || "Special Requests"} body={hero?.body} videoUrl={hero?.videoUrl} videoFileUrl={hero?.videoFileUrl} />
       <MontageStrip />
       {paragraphs && (
         <div className="max-w-[680px] mx-auto px-6">

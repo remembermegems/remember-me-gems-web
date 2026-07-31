@@ -1,6 +1,6 @@
 "use client";
 
-import { useStudioStore } from "@/store/studio";
+import { useStudioStore, cartQuantity, cartLineTotal } from "@/store/studio";
 
 // Persistent indicator while configuring a second (or later) gem, so the
 // customer is never left wondering whether the first one is still "in" the
@@ -12,7 +12,10 @@ export function CartBadge() {
 
   if (cart.length === 0) return null;
 
-  const total = cart.reduce((sum, g) => sum + g.totalPrice, 0);
+  // Counts physical gems, not cart rows — two of the same design is "2 gems
+  // in cart," which is what the customer will actually receive in the box.
+  const total = cart.reduce((sum, g) => sum + cartLineTotal(g), 0);
+  const gemCount = cart.reduce((sum, g) => sum + cartQuantity(g), 0);
 
   return (
     <button
@@ -20,7 +23,7 @@ export function CartBadge() {
       className="fixed top-4 right-4 z-40 flex items-center gap-2 rounded-full border border-gold bg-warm-white px-4 py-2 shadow-md font-body text-sm text-cocoa hover:bg-gold/10"
     >
       <span className="font-medium">
-        {cart.length} {cart.length === 1 ? "gem" : "gems"} in cart
+        {gemCount} {gemCount === 1 ? "gem" : "gems"} in cart
       </span>
       <span className="text-cocoa/50">· ${total}</span>
     </button>

@@ -6,6 +6,7 @@ import { GemCanvas } from "../GemCanvas";
 import { SHAPES, SHAPE_ADDON_PRICE } from "@/lib/studio/shapes";
 import { availableShapes } from "@/lib/studio/filters";
 import { stoneSwatchColor } from "@/lib/studio/shapeGeometry";
+import { SelectionContinue, SelectedBadge } from "../SelectionContinue";
 import { copyText } from "@/lib/notion/configuratorCopy";
 
 export function ShapeScreen({ copy }: { copy: Record<string, string> }) {
@@ -33,39 +34,48 @@ export function ShapeScreen({ copy }: { copy: Record<string, string> }) {
       )}
       copy={copy}
       onBack={store.goBack}
-      onContinue={store.goNext}
-      continueDisabled={!store.shape}
-      stickyContinue
     >
+      {/* Signals that a tile does double duty (selects AND expands) —
+          nothing else on screen says so before the first tap. */}
+      <p className="text-center font-body text-sm text-cocoa/50 mb-4">
+        {copyText(copy, "shape_tap_hint", "Tap a shape to select")}
+      </p>
       <div className="space-y-3">
         {shapes.map((shape) => {
           const isSelected = store.shape === shape.name;
           return (
-            <button
+            <div
               key={shape.name}
-              onClick={() => store.setShape(shape.name)}
-              className={`w-full flex items-center gap-4 rounded-2xl p-4 text-left transition-colors ${
+              className={`rounded-2xl transition-colors ${
                 isSelected ? "bg-warm-white ring-[3px] ring-gold shadow-md" : "bg-cream hover:bg-dusty-sky/20"
               }`}
             >
-              <div className="shrink-0 flex items-center justify-center" style={{ width: 72 }}>
-                <GemCanvas shape={shape.name} stoneColor={tileColor} stoneImageUrl={store.stone?.stoneImageUrl} inlayColor="Gold" maxWidth={60} />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-heading text-lg text-cocoa">{shape.name}</p>
-                  {shape.petiteAddOn && (
-                    <span className="text-[11px] font-medium bg-gold/20 text-gold px-2 py-0.5 rounded-full">
-                      {copyText(copy, "shape_addon_badge", `+$${SHAPE_ADDON_PRICE}`)}
-                    </span>
-                  )}
+              <button
+                onClick={() => store.setShape(shape.name)}
+                aria-pressed={isSelected}
+                className="w-full flex items-center gap-4 p-4 text-left"
+              >
+                <div className="shrink-0 flex items-center justify-center" style={{ width: 72 }}>
+                  <GemCanvas shape={shape.name} stoneColor={tileColor} stoneImageUrl={store.stone?.stoneImageUrl} inlayColor="Gold" maxWidth={60} alt="" />
                 </div>
-                <p className="text-sm text-cocoa/50 mb-1">
-                  {sizePrefix} {shape.approxSize}
-                </p>
-                <p className="font-body text-cocoa/70 text-sm">{shape.description}</p>
-              </div>
-            </button>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-heading text-lg text-cocoa">{shape.name}</p>
+                    {shape.petiteAddOn && (
+                      <span className="text-[11px] font-medium bg-gold/20 text-gold px-2 py-0.5 rounded-full">
+                        {copyText(copy, "shape_addon_badge", `+$${SHAPE_ADDON_PRICE}`)}
+                      </span>
+                    )}
+                    {isSelected && <SelectedBadge />}
+                  </div>
+                  <p className="text-sm text-cocoa/50 mb-1">
+                    {sizePrefix} {shape.approxSize}
+                  </p>
+                  <p className="font-body text-cocoa/70 text-sm">{shape.description}</p>
+                </div>
+              </button>
+              {isSelected && <SelectionContinue onContinue={store.goNext} copy={copy} className="px-4 pb-4" />}
+            </div>
           );
         })}
       </div>

@@ -11,8 +11,8 @@ export default async function SymbolsPage() {
 
   return (
     <div>
-      <Hero headline={intro?.headline || "Symbols"} body={intro?.body} lens />
-      <SymbolCatalog symbols={symbols} />
+      <Hero headline={intro?.headline || "Symbols"} body={intro?.body} videoUrl={intro?.videoUrl} videoFileUrl={intro?.videoFileUrl} lens />
+      <SymbolCatalog symbols={symbols} beginLabel={intro?.ctaLabel || undefined} />
     </div>
   );
 }
