@@ -130,8 +130,12 @@ export async function HomePage() {
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-6 mb-10">
               {featuredStones.map((stone) => (
                 <div key={stone.id}>
+                  {/* Matches the same fix already applied on the Stone screen
+                      and Available Gemstones: "Polished Photo" is reserved for
+                      a future photoshoot and is empty on every stone today,
+                      while "Stone Image" is what Anthony actually uploads to. */}
                   <CmsImage
-                    src={stone.polishedPhotoUrl}
+                    src={stone.stoneImageUrl}
                     alt={stoneAlt(stone)}
                     label={stone.name}
                     aspect="aspect-square"
