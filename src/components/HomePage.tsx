@@ -181,13 +181,31 @@ export async function HomePage() {
             <h2 className="font-heading text-3xl uppercase tracking-wide text-cocoa mb-8" style={{ color: "#4E3F35" }}>
               {ourStory.label}
             </h2>
-            <CmsImage
-              src={ourStory.imageUrl}
-              alt={sectionAlt(ourStory)}
-              label={ourStory.imageNotes || "Candid family photo, or Dad with his gem"}
-              aspect="aspect-[4/3]"
-              className="rounded-2xl mb-8"
-            />
+            {/* Natural-shape rendering (same fix as the hero, 2026-08-01) —
+                Anthony's call: this is a specific sentimental photo (his
+                mother's urn and the first Remember Me Gem) and it must show
+                in full, uncropped, regardless of the box shape used
+                elsewhere. width/height are only a layout-reservation guess
+                before the real photo loads; w-full h-auto lets its actual
+                shape win once it's in. */}
+            {ourStory.imageUrl ? (
+              <Image
+                src={ourStory.imageUrl}
+                alt={sectionAlt(ourStory)}
+                width={1200}
+                height={1500}
+                sizes="(max-width: 768px) 100vw, 640px"
+                className="w-full h-auto rounded-2xl mb-8"
+              />
+            ) : (
+              <CmsImage
+                src={null}
+                alt="Our Story"
+                label={ourStory.imageNotes || "Candid family photo, or Dad with his gem"}
+                aspect="aspect-[4/3]"
+                className="rounded-2xl mb-8"
+              />
+            )}
             {ourStory.body && <p className="font-body text-cocoa/80 whitespace-pre-line mb-6">{ourStory.body}</p>}
             {ourStory.links && <LinksRow links={ourStory.links} />}
           </div>
