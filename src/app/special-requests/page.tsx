@@ -1,6 +1,7 @@
 import { getWebsiteCopy } from "@/lib/notion/websiteCopy";
 import { Hero } from "@/components/Hero";
 import { CmsImage } from "@/components/CmsImage";
+import { sectionAlt } from "@/lib/altText";
 import { DiamondList } from "@/components/ListMarkers";
 import { CalendlyEmbed } from "@/components/CalendlyEmbed";
 
@@ -18,33 +19,6 @@ function splitBodyAndBullets(body: string): { paragraphs: string; bullets: strin
   };
 }
 
-// The 3-tile montage strip — a wide tile plus two smaller ones, standing in
-// for a hero photo Anthony hasn't shot yet (he plans to photograph custom
-// special-request pieces to show range). Reads as an intentional curated
-// gallery even fully gray, so no redesign is needed once real photos land
-// one tile at a time. See project-rmg-website-cms memory.
-function MontageStrip() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-[880px] mx-auto px-6 mb-12">
-      <div className="aspect-[3/2] sm:aspect-auto sm:row-span-2">
-        {/* No aspect class on mobile-vs-desktop mismatch here: on sm+ this
-            tile's height is already fully determined by spanning both grid
-            rows, so pairing an aspect-ratio with h-full would fight over
-            which one wins the width — drop aspect-ratio and just fill. */}
-        <CmsImage
-          src={null}
-          alt="Special requests"
-          label="Custom special request, hand-carved"
-          aspect=""
-          className="rounded-2xl w-full h-full"
-        />
-      </div>
-      <CmsImage src={null} alt="Special requests" label="Special request example" aspect="aspect-square" className="rounded-2xl" />
-      <CmsImage src={null} alt="Special requests" label="Special request example" aspect="aspect-square" className="rounded-2xl" />
-    </div>
-  );
-}
-
 export default async function SpecialRequestsPage() {
   const sections = await getWebsiteCopy("Special Requests");
   const hero = sections.find((s) => s.section === "Hero");
@@ -56,7 +30,19 @@ export default async function SpecialRequestsPage() {
   return (
     <div>
       <Hero headline={hero?.headline || "Special Requests"} body={hero?.body} videoUrl={hero?.videoUrl} videoFileUrl={hero?.videoFileUrl} />
-      <MontageStrip />
+      {/* Single hero photo, 1200x800 (3:2) — replaces the 3-tile montage
+          placeholder (2026-07-31); Anthony didn't end up shooting the range
+          of example pieces that called for. Reads from the same "Hero" row's
+          Image field as every other page's single hero photo. */}
+      <div className="max-w-[880px] mx-auto px-6 mb-12">
+        <CmsImage
+          src={hero?.imageUrl ?? null}
+          alt={hero ? sectionAlt(hero) : "Special Requests"}
+          label={hero?.imageNotes || "Custom special request, hand-carved"}
+          aspect="aspect-[3/2]"
+          className="rounded-3xl"
+        />
+      </div>
       {paragraphs && (
         <div className="max-w-[680px] mx-auto px-6">
           <p className="font-body text-cocoa/80 whitespace-pre-line mb-8">{paragraphs}</p>

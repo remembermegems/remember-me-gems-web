@@ -10,17 +10,35 @@ export function CmsImage({
   label,
   className = "",
   aspect = "aspect-square",
+  // "cover" (default) crops the photo to fill the box exactly — right for
+  // grids where every tile needs to be the same size. "contain" shows the
+  // whole photo with empty space around it instead of cropping — for a
+  // single curated shot where trimming could cut out part of the
+  // composition (e.g. the homepage hero flatlay, 2026-07-31).
+  fit = "cover",
 }: {
   src: string | null;
   alt: string;
   label?: string;
   className?: string;
   aspect?: string;
+  fit?: "cover" | "contain";
 }) {
   if (src) {
     return (
-      <div className={`relative ${aspect} ${className}`}>
-        <Image src={src} alt={alt} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+      // overflow-hidden is what actually makes `className`'s rounded-*
+      // classes visible — without it the square photo just hangs off the
+      // edges of its own rounded box. Missing this was a real bug (found
+      // 2026-07-31): every image on the site had square corners regardless
+      // of the rounded-* class passed in.
+      <div className={`relative overflow-hidden ${aspect} ${className}`}>
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(max-width: 768px) 100vw, 50vw"
+          className={fit === "contain" ? "object-contain" : "object-cover"}
+        />
       </div>
     );
   }
