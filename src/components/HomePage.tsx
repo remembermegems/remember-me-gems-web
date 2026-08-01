@@ -64,17 +64,22 @@ export async function HomePage() {
             </h1>
           )}
           <SectionDivider className="mb-8" />
-          {/* fit="contain" (Anthony's call, 2026-07-31): this is a single
-              curated flatlay, not a grid tile — cropping to fill the 16:10
-              box was cutting pieces out of the composition. Shows the whole
-              photo instead, letterboxed on the surrounding cream background. */}
+          {/* Reverted from fit="contain" 2026-08-01: rounding the photo
+              itself (needed for contain mode, since a letterboxed photo
+              doesn't touch the box's corners) wasn't clipping correctly in
+              Anthony's browser, even though it measured correctly in
+              devtools — a real quirk with border-radius directly on an <img>,
+              not something visible in code. The uploaded photo's shape
+              already closely matches this 16:10 box (measured live: fills it
+              almost exactly), so cover crops nothing here — safe to rely on
+              the box-level rounding (proven working) instead of the photo-
+              level rounding (not proven working). */}
           <CmsImage
             src={hero?.imageUrl ?? null}
             alt={hero ? sectionAlt(hero) : "Hero"}
             label={hero?.imageNotes || "A gem worn against the chest, or resting in an open hand"}
             aspect="aspect-[16/10]"
             className="rounded-3xl mb-10"
-            fit="contain"
           />
           {hero?.body && <p className="font-body text-lg text-cocoa/80 mb-8 whitespace-pre-line">{hero.body}</p>}
           {hero?.links && <div className="mb-8"><LinksRow links={hero.links} /></div>}
