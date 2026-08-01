@@ -6,11 +6,14 @@ import { copyText } from "@/lib/notion/configuratorCopy";
 import { ReassuranceNote } from "../SelectionContinue";
 import { SectionDivider } from "@/components/SectionDivider";
 
+// Order confirmed with Anthony 2026-08-01: carry type, symbol, gemstone,
+// shape last — display order only, doesn't touch which step follows which
+// (REMAINING_ORDER in store/studio.ts is unrelated and untouched).
 const TILE_KEYS: { choice: BeginChoice; labelKey: string; descKey: string; fallbackLabel: string; fallbackDesc: string }[] = [
-  { choice: "stone", labelKey: "wheretobegin_stone_label", descKey: "wheretobegin_stone_desc", fallbackLabel: "Stone", fallbackDesc: "Start with the stone that speaks to you" },
-  { choice: "shape", labelKey: "wheretobegin_shape_label", descKey: "wheretobegin_shape_desc", fallbackLabel: "Shape", fallbackDesc: "Choose the shape that feels right" },
   { choice: "carry-type", labelKey: "wheretobegin_carry_label", descKey: "wheretobegin_carry_desc", fallbackLabel: "How You'll Carry It", fallbackDesc: "Decide how you'll keep them close" },
   { choice: "symbol", labelKey: "wheretobegin_symbol_label", descKey: "wheretobegin_symbol_desc", fallbackLabel: "Symbol", fallbackDesc: "Start with a symbol that means something" },
+  { choice: "stone", labelKey: "wheretobegin_stone_label", descKey: "wheretobegin_stone_desc", fallbackLabel: "Stone", fallbackDesc: "Start with the stone that speaks to you" },
+  { choice: "shape", labelKey: "wheretobegin_shape_label", descKey: "wheretobegin_shape_desc", fallbackLabel: "Shape", fallbackDesc: "Choose the shape that feels right" },
 ];
 
 export function WhereToBeginScreen({
