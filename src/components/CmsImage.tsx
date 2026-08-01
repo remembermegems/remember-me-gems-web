@@ -25,19 +25,32 @@ export function CmsImage({
   fit?: "cover" | "contain";
 }) {
   if (src) {
+    // In "cover" mode the photo always touches all four edges of the box, so
+    // rounding the box (below) is enough. In "contain" mode the photo can be
+    // letterboxed — narrower or shorter than the box — which leaves empty,
+    // invisible space at the box's corners for the rounding to apply to,
+    // while the photo's own sharp edge sits visibly in the middle. So
+    // "contain" images also need the rounding applied directly to the photo
+    // itself, wherever its edges actually land (found 2026-07-31, homepage
+    // hero).
+    const roundedClasses = className
+      .split(/\s+/)
+      .filter((c) => /^rounded(-|$)/.test(c))
+      .join(" ");
+
     return (
       // overflow-hidden is what actually makes `className`'s rounded-*
-      // classes visible — without it the square photo just hangs off the
-      // edges of its own rounded box. Missing this was a real bug (found
-      // 2026-07-31): every image on the site had square corners regardless
-      // of the rounded-* class passed in.
+      // classes visible on the box — without it the square photo just hangs
+      // off the edges of its own rounded box. Missing this was a real bug
+      // (found 2026-07-31): every image on the site had square corners
+      // regardless of the rounded-* class passed in.
       <div className={`relative overflow-hidden ${aspect} ${className}`}>
         <Image
           src={src}
           alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, 50vw"
-          className={fit === "contain" ? "object-contain" : "object-cover"}
+          className={`${fit === "contain" ? "object-contain" : "object-cover"} ${fit === "contain" ? roundedClasses : ""}`}
         />
       </div>
     );
