@@ -13,7 +13,13 @@ const TILE_KEYS: { choice: BeginChoice; labelKey: string; descKey: string; fallb
   { choice: "symbol", labelKey: "wheretobegin_symbol_label", descKey: "wheretobegin_symbol_desc", fallbackLabel: "Symbol", fallbackDesc: "Start with a symbol that means something" },
 ];
 
-export function WhereToBeginScreen({ copy }: { copy: Record<string, string> }) {
+export function WhereToBeginScreen({
+  copy,
+  images = {},
+}: {
+  copy: Record<string, string>;
+  images?: Record<string, string>;
+}) {
   const chooseBeginWith = useStudioStore((s) => s.chooseBeginWith);
   const goBack = useStudioStore((s) => s.goBack);
 
@@ -35,7 +41,7 @@ export function WhereToBeginScreen({ copy }: { copy: Record<string, string> }) {
               onClick={() => chooseBeginWith(t.choice)}
               className="text-left rounded-2xl bg-cream hover:bg-dusty-sky/20 p-6 transition-colors"
             >
-              <CmsImage src={null} alt={label} label={label} aspect="aspect-[16/9]" className="rounded-xl mb-4" />
+              <CmsImage src={images[t.labelKey] ?? null} alt={label} label={label} aspect="aspect-[16/9]" className="rounded-xl mb-4" />
               <p className="font-heading text-xl text-cocoa mb-1">{label}</p>
               <p className="font-body text-cocoa/60 text-sm">{desc}</p>
             </button>

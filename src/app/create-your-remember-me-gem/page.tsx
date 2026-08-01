@@ -1,6 +1,6 @@
 import { getStones } from "@/lib/notion/stones";
 import { getSymbols } from "@/lib/notion/symbols";
-import { getConfiguratorCopy, copyText } from "@/lib/notion/configuratorCopy";
+import { getConfiguratorCopy, getConfiguratorImages, copyText } from "@/lib/notion/configuratorCopy";
 import { getWebsiteCopy } from "@/lib/notion/websiteCopy";
 import { StudioIntro } from "@/components/studio/StudioIntro";
 import { Studio } from "@/components/studio/Studio";
@@ -14,11 +14,12 @@ export default async function CreateYourGemPage({
 }: {
   searchParams: Promise<{ stone?: string; symbol?: string; shape?: string }>;
 }) {
-  const [{ stone: stoneParam, symbol: symbolParam, shape: shapeParam }, stones, symbols, copy, sections] = await Promise.all([
+  const [{ stone: stoneParam, symbol: symbolParam, shape: shapeParam }, stones, symbols, copy, images, sections] = await Promise.all([
     searchParams,
     getStones(),
     getSymbols(),
     getConfiguratorCopy(),
+    getConfiguratorImages(),
     getWebsiteCopy("Create Your Remember Me Gem"),
   ]);
   const betaMode = copyText(copy, "global_beta_mode", "true") === "true";
@@ -42,6 +43,7 @@ export default async function CreateYourGemPage({
         symbols={symbols}
         betaMode={betaMode}
         copy={copy}
+        images={images}
         deepLinkStone={deepLinkStone}
         deepLinkShape={deepLinkShape}
         deepLinkSymbol={deepLinkSymbol}

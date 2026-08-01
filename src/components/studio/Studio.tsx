@@ -26,6 +26,7 @@ export function Studio({
   symbols,
   betaMode,
   copy,
+  images = {},
   deepLinkStone,
   deepLinkShape,
   deepLinkSymbol,
@@ -34,6 +35,9 @@ export function Studio({
   symbols: Symbol[];
   betaMode: boolean;
   copy: Record<string, string>;
+  // Key -> Image URL, for the couple of Studio tile photos that live on the
+  // Configurator Copy database rather than a dedicated field elsewhere.
+  images?: Record<string, string>;
   deepLinkStone?: Stone | null;
   deepLinkShape?: ShapeName | null;
   deepLinkSymbol?: Symbol | null;
@@ -99,9 +103,9 @@ export function Studio({
       {(() => {
         switch (currentStep) {
           case "where-to-begin":
-            return <WhereToBeginScreen copy={copy} />;
+            return <WhereToBeginScreen copy={copy} images={images} />;
           case "carry-type":
-            return <CarryTypeScreen copy={copy} />;
+            return <CarryTypeScreen copy={copy} images={images} />;
           case "stone":
             return <StoneScreen stones={stones} betaMode={betaMode} copy={copy} />;
           case "shape":

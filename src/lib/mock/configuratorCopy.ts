@@ -4,7 +4,7 @@ import type { ConfiguratorCopyRow } from "@/lib/notion/types";
 // copy decisions from the Studio screen design sessions; the real editable
 // source of truth is the "RMG Configurator Copy" Notion database.
 function row(key: string, step: ConfiguratorCopyRow["step"], text: string, channel: ConfiguratorCopyRow["channel"] = "Both"): ConfiguratorCopyRow {
-  return { id: key, key, step, type: "", text, channel, notes: "" };
+  return { id: key, key, step, type: "", text, channel, notes: "", imageUrl: null };
 }
 
 export const mockConfiguratorCopy: ConfiguratorCopyRow[] = [

@@ -78,7 +78,13 @@ function ChosenStrip() {
   );
 }
 
-export function CarryTypeScreen({ copy }: { copy: Record<string, string> }) {
+export function CarryTypeScreen({
+  copy,
+  images = {},
+}: {
+  copy: Record<string, string>;
+  images?: Record<string, string>;
+}) {
   const store = useStudioStore();
   const options = availableCarryTypes(
     ALL_CARRY_TYPES.map((c) => c.id),
@@ -112,7 +118,7 @@ export function CarryTypeScreen({ copy }: { copy: Record<string, string> }) {
                 aria-pressed={isSelected}
                 className="w-full text-left p-5"
               >
-                <CmsImage src={null} alt={label} label={label} aspect="aspect-[16/9]" className="rounded-xl mb-4" />
+                <CmsImage src={images[c.labelKey] ?? null} alt={label} label={label} aspect="aspect-[16/9]" className="rounded-xl mb-4" />
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-heading text-lg text-cocoa">{label}</p>
                   {isSelected && <SelectedBadge />}

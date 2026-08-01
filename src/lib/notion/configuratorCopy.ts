@@ -1,5 +1,5 @@
 import { NOTION_DB } from "./config";
-import { hasNotionToken, queryAllRows, text, type NotionPage } from "./client";
+import { hasNotionToken, queryAllRows, text, fileUrl, type NotionPage } from "./client";
 import type { ConfiguratorCopyRow, ConfiguratorStep } from "./types";
 import { mockConfiguratorCopy } from "@/lib/mock/configuratorCopy";
 
@@ -12,6 +12,7 @@ function mapRow(page: NotionPage): ConfiguratorCopyRow {
     text: text(page, "Text"),
     channel: (page.properties["Channel"]?.select?.name ?? "Both") as ConfiguratorCopyRow["channel"],
     notes: text(page, "Notes"),
+    imageUrl: fileUrl(page, "Image"),
   };
 }
 
@@ -32,4 +33,18 @@ export async function getConfiguratorCopy(): Promise<Record<string, string>> {
 
 export function copyText(copy: Record<string, string>, key: string, fallback = ""): string {
   return copy[key] ?? fallback;
+}
+
+// Key -> Image URL, for the handful of Studio tile photos that live on this
+// database (Where to Begin, How to Carry It) rather than a dedicated Image
+// field elsewhere. Rows with no image just don't appear in the map, so
+// `images[key]` is undefined rather than an empty string — callers should
+// treat that the same as null.
+export async function getConfiguratorImages(): Promise<Record<string, string>> {
+  const rows = hasNotionToken()
+    ? (await queryAllRows(NOTION_DB.configuratorCopy)).map(mapRow)
+    : mockConfiguratorCopy;
+
+  const webRows = rows.filter((r) => (r.channel === "Web" || r.channel === "Both") && r.imageUrl);
+  return Object.fromEntries(webRows.map((r) => [r.key, r.imageUrl as string]));
 }

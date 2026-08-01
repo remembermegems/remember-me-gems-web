@@ -67,6 +67,10 @@ export type ConfiguratorCopyRow = {
   text: string;
   channel: "Web" | "Event" | "Both";
   notes: string;
+  // Only populated on the handful of rows that back a Studio tile photo
+  // (e.g. "Where would you like to begin?", "How to carry it") — most rows
+  // are text-only and this stays null.
+  imageUrl: string | null;
 };
 
 export type Stone = {
