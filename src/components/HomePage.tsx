@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getWebsiteCopy } from "@/lib/notion/websiteCopy";
 import { getStones } from "@/lib/notion/stones";
 import { CmsImage } from "@/components/CmsImage";
@@ -64,23 +65,36 @@ export async function HomePage() {
             </h1>
           )}
           <SectionDivider className="mb-8" />
-          {/* Reverted from fit="contain" 2026-08-01: rounding the photo
-              itself (needed for contain mode, since a letterboxed photo
-              doesn't touch the box's corners) wasn't clipping correctly in
-              Anthony's browser, even though it measured correctly in
-              devtools — a real quirk with border-radius directly on an <img>,
-              not something visible in code. The uploaded photo's shape
-              already closely matches this 16:10 box (measured live: fills it
-              almost exactly), so cover crops nothing here — safe to rely on
-              the box-level rounding (proven working) instead of the photo-
-              level rounding (not proven working). */}
-          <CmsImage
-            src={hero?.imageUrl ?? null}
-            alt={hero ? sectionAlt(hero) : "Hero"}
-            label={hero?.imageNotes || "A gem worn against the chest, or resting in an open hand"}
-            aspect="aspect-[16/10]"
-            className="rounded-3xl mb-10"
-          />
+          {/* Root cause found 2026-08-01: this box was forcing a fixed 16:10
+              shape on a photo that isn't 16:10, which either crops it
+              (object-cover, cuts the composition) or pads it with invisible
+              empty space (object-contain) — and a rounded corner drawn on
+              that invisible empty space isn't visible, which is why neither
+              approach ever looked right. The actual fix is to stop forcing a
+              box shape at all: render the photo at its own real proportions
+              (width÷height picked only to avoid layout jump before it loads;
+              the real image's own shape wins once it's in), so there's no
+              gap left for the rounding to fail on. Bypasses CmsImage here
+              since this is the one photo on the site that needs its own
+              natural shape rather than a fixed tile size. */}
+          {hero?.imageUrl ? (
+            <Image
+              src={hero.imageUrl}
+              alt={hero ? sectionAlt(hero) : "Hero"}
+              width={1600}
+              height={1000}
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="w-full h-auto rounded-3xl mb-10"
+            />
+          ) : (
+            <CmsImage
+              src={null}
+              alt="Hero"
+              label={hero?.imageNotes || "A gem worn against the chest, or resting in an open hand"}
+              aspect="aspect-[16/10]"
+              className="rounded-3xl mb-10"
+            />
+          )}
           {hero?.body && <p className="font-body text-lg text-cocoa/80 mb-8 whitespace-pre-line">{hero.body}</p>}
           {hero?.links && <div className="mb-8"><LinksRow links={hero.links} /></div>}
           <CtaLink href={hero?.ctaUrl || DEFAULT_CTA_URL}>{hero?.ctaLabel || "Create Yours →"}</CtaLink>
