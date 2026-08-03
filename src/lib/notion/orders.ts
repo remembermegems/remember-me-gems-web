@@ -101,7 +101,15 @@ export async function createOrder(input: OrderInput): Promise<{ orderNumber: str
     Symbol: { rich_text: [{ text: { content: input.symbolName } }] },
     "Ash Inlay Color": { select: { name: INLAY_COLOR_TO_ORDER_FIELD[input.inlayColor] ?? input.inlayColor } },
     "Engraving Font": { select: { name: LETTERING_STYLE_TO_ORDER_FIELD[input.letteringStyle] ?? input.letteringStyle } },
-    "Back Engraving": { rich_text: [{ text: { content: input.initials } }] },
+    // A blank field was ambiguous between "customer declined initials" and
+    // "something went wrong" (real incident, 2026-08-02: 4 live orders with
+    // blank initials, no way to tell which from the data alone). Writing an
+    // explicit marker settles it at a glance, and reads clearly to whoever's
+    // actually doing the engraving — not just letters, so it can't be
+    // mistaken for something to engrave.
+    "Back Engraving": {
+      rich_text: [{ text: { content: input.declinedInitials ? "(No initials — customer declined)" : input.initials } }],
+    },
     "Add-ons": { rich_text: [{ text: { content: input.addOns.join(", ") } }] },
     "Base Price": { number: input.basePrice },
     "Total Price": { number: input.totalPrice },

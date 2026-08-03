@@ -76,6 +76,7 @@ function ordersFromShopify(order: ShopifyOrder, sharedOrderId: string): OrderInp
         inlayColor: (p._inlay_color ?? "Natural") as InlayColor,
         letteringStyle: (p._lettering_style ?? "Monument") as LetteringStyle,
         initials: p._initials ?? "",
+        declinedInitials: p._declined_initials === "true",
         addOns: p._add_ons ? p._add_ons.split(", ").filter(Boolean) : [],
         basePrice: Number(p._base_price ?? 0),
         totalPrice: Number(p._total_price ?? 0),

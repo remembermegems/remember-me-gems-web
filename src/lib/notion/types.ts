@@ -152,6 +152,9 @@ export type OrderInput = {
   inlayColor: InlayColor;
   letteringStyle: LetteringStyle;
   initials: string;
+  // Distinct from initials === "" — records whether a blank field was a
+  // deliberate customer choice or something going wrong (2026-08-02).
+  declinedInitials?: boolean;
   addOns: string[];
   basePrice: number;
   totalPrice: number;

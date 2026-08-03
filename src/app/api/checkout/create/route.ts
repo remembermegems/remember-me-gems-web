@@ -18,6 +18,7 @@ type GemBody = {
   inlayColor: string;
   letteringStyle: string;
   initials: string;
+  declinedInitials?: boolean;
 };
 
 // The customer's own shipping info — one set per checkout, shared across
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
       inlayColor: gem.inlayColor as OrderInput["inlayColor"],
       letteringStyle: gem.letteringStyle as OrderInput["letteringStyle"],
       initials: gem.initials,
+      declinedInitials: gem.declinedInitials,
       addOns,
       basePrice,
       totalPrice: total,

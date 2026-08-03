@@ -31,6 +31,12 @@ export type CartGem = {
   inlayColor: InlayColor;
   letteringStyle: LetteringStyle;
   initials: string;
+  // Distinct from `initials === ""` — without this, a blank field in the
+  // order record is ambiguous between "customer said no initials" and
+  // "something went wrong" (real gap found 2026-08-02: 4 live orders with
+  // blank initials, no way to tell which). Optional so carts persisted
+  // before this field existed still deserialize.
+  declinedInitials?: boolean;
   basePrice: number;
   addOns: string[];
   // Price for ONE of this gem. Multiply by `quantity` for the line total —
@@ -380,6 +386,7 @@ export const useStudioStore = create<StudioState>()(
           inlayColor: s.inlayColor ?? "Natural",
           letteringStyle: s.letteringStyle ?? "Monument",
           initials: s.initials,
+          declinedInitials: s.declinedInitials,
           basePrice: priced.basePrice,
           addOns: priced.addOns,
           totalPrice: priced.totalPrice,
@@ -466,11 +473,10 @@ export const useStudioStore = create<StudioState>()(
           inlayColor: gem.inlayColor,
           letteringStyle: gem.letteringStyle,
           initials: gem.initials,
-          // CartGem doesn't store the opt-out flag, but it's recoverable:
-          // the dedication screen only lets a gem through with initials filled
-          // OR the "no initials" box checked, so empty initials on a completed
-          // gem means it was declined.
-          declinedInitials: !gem.initials,
+          // Now stored directly on CartGem (2026-08-02) rather than guessed
+          // from an empty string — a cart persisted before that field
+          // existed falls back to the old guess for backward compatibility.
+          declinedInitials: gem.declinedInitials ?? !gem.initials,
           stepOrder,
           totalSteps: FULL_STEP_COUNT,
           currentStep: "review",

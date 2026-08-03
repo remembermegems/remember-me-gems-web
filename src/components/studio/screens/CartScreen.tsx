@@ -93,6 +93,7 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
               inlayColor: g.inlayColor,
               letteringStyle: g.letteringStyle,
               initials: g.initials,
+              declinedInitials: g.declinedInitials,
             }))
           ),
           customer: address,

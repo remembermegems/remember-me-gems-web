@@ -89,11 +89,17 @@ function gemAttributes(order: OrderInput, index: number): CartAttribute[] {
   if (order.carryType) attrs.push({ key: "How they'll keep it close", value: order.carryType });
   if (order.symbolName) attrs.push({ key: "Symbol", value: order.symbolName });
   // Lettering only means something when there's an engraving to letter.
+  // Reads the explicit flag rather than just checking for a blank string —
+  // real incident 2026-08-02: a blank was ambiguous between "declined" and
+  // "something went wrong", so the flag exists specifically to settle that.
   if (order.initials) {
     attrs.push({ key: "Initials", value: order.initials });
     attrs.push({ key: "Lettering style", value: order.letteringStyle });
   } else {
-    attrs.push({ key: "Initials", value: "None — customer declined" });
+    attrs.push({
+      key: "Initials",
+      value: order.declinedInitials ? "None — customer declined" : "None provided",
+    });
   }
 
   // Machine-readable duplicates for the orders/paid webhook to rebuild the
@@ -117,6 +123,7 @@ function gemAttributes(order: OrderInput, index: number): CartAttribute[] {
     { key: "_inlay_color", value: order.inlayColor },
     { key: "_lettering_style", value: order.letteringStyle },
     { key: "_initials", value: order.initials },
+    { key: "_declined_initials", value: String(order.declinedInitials ?? false) },
     { key: "_carry_type", value: order.carryType ?? "" },
     { key: "_base_price", value: String(order.basePrice) },
     { key: "_total_price", value: String(order.totalPrice) },
