@@ -1,4 +1,4 @@
-import { createOrder } from "@/lib/notion/orders";
+import { createOrder, findOrdersByOrderId } from "@/lib/notion/orders";
 import { getStones } from "@/lib/notion/stones";
 import { getSymbols } from "@/lib/notion/symbols";
 import { CtaLink } from "@/components/CtaButton";
@@ -114,8 +114,24 @@ export default async function OrderConfirmedPage({
   }
 
   const orders = JSON.parse(Buffer.from(data, "base64url").toString("utf-8")) as OrderInput[];
+
+  // Idempotency guard (added 2026-08-04, real incident): this page is a real
+  // GET-able URL, not a one-shot action — reloading it, revisiting it from
+  // browser history, reopening a bookmarked/shared link, or a messaging app
+  // auto-previewing a shared link all load it again. Without this, every one
+  // of those re-writes the same order to Notion a second time. The Shopify
+  // webhook path already had this exact guard (findOrdersByOrderId); this
+  // complimentary/no-payment path — the one actually in use right now — never
+  // got it. Confirmed real duplicates in production: same Order ID written
+  // minutes to over an hour apart.
+  const sharedOrderId = orders[0]?.orderId;
+  const existingOrders = sharedOrderId ? await findOrdersByOrderId(sharedOrderId) : [];
+  const alreadyRecorded = existingOrders.length > 0;
+
   const [orderResults, stones, symbols] = await Promise.all([
-    Promise.all(orders.map((order) => createOrder(order))),
+    alreadyRecorded
+      ? Promise.resolve(existingOrders.map((e) => ({ orderNumber: e.orderNumber, pageId: e.id })))
+      : Promise.all(orders.map((order) => createOrder(order))),
     getStones(),
     getSymbols(),
   ]);
@@ -132,7 +148,10 @@ export default async function OrderConfirmedPage({
           complimentary orders: no money changed hands, so a "purchase" event
           at sticker price would overstate revenue once real orders are mixed
           in with family/demo pieces in the same GA4 property. */}
-      {!isComplimentary && (
+      {/* Also gated on !alreadyRecorded — a reload of this same page must not
+          fire a second "purchase" event for the same order, or GA4's revenue
+          numbers double-count every time this page gets revisited. */}
+      {!isComplimentary && !alreadyRecorded && (
         <PurchaseEvent
           transactionId={firstOrder.orderId}
           value={grandTotal}

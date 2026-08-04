@@ -1,5 +1,5 @@
 import { NOTION_DB } from "./config";
-import { createPage, getPage, updatePage, hasNotionToken, num, queryAllRows } from "./client";
+import { createPage, getPage, updatePage, hasNotionToken, num, text, queryAllRows } from "./client";
 import { getConfiguratorCopy, copyText } from "./configuratorCopy";
 import type { OrderInput } from "./types";
 
@@ -59,13 +59,13 @@ async function liveOrdersEnabled(): Promise<boolean> {
 // that doesn't 200 quickly and can send the same event more than once, so the
 // only thing standing between a retry and duplicate production rows is asking
 // Notion whether this order ID is already there.
-export async function findOrdersByOrderId(orderId: string): Promise<{ id: string }[]> {
+export async function findOrdersByOrderId(orderId: string): Promise<{ id: string; orderNumber: string }[]> {
   if (!hasNotionToken()) return [];
   const rows = await queryAllRows(NOTION_DB.orders, {
     property: "Order ID",
     rich_text: { equals: orderId },
   });
-  return rows.map((r) => ({ id: r.id }));
+  return rows.map((r) => ({ id: r.id, orderNumber: text(r, "Order Number") }));
 }
 
 export async function createOrder(input: OrderInput): Promise<{ orderNumber: string; pageId: string | null }> {
