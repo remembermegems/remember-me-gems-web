@@ -99,6 +99,12 @@ export async function createOrder(input: OrderInput): Promise<{ orderNumber: str
     Stone: { rich_text: [{ text: { content: input.stoneName } }] },
     Shape: { rich_text: [{ text: { content: input.shapeName } }] },
     Symbol: { rich_text: [{ text: { content: input.symbolName } }] },
+    // Real gap found 2026-08-04: OrderInput carried carryType all along, but
+    // no property on this database ever received it, and the field itself
+    // didn't exist yet either. Matters for production, not just display —
+    // Wear It/Hang It need a drilled hole, Carry It (the touchstone) doesn't,
+    // same question for shapes being added later like the dog tag.
+    ...(input.carryType ? { "Carry Type": { select: { name: input.carryType } } } : {}),
     "Ash Inlay Color": { select: { name: INLAY_COLOR_TO_ORDER_FIELD[input.inlayColor] ?? input.inlayColor } },
     "Engraving Font": { select: { name: LETTERING_STYLE_TO_ORDER_FIELD[input.letteringStyle] ?? input.letteringStyle } },
     // A blank field was ambiguous between "customer declined initials" and
