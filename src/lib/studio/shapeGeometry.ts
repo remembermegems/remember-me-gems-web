@@ -104,6 +104,36 @@ export const SHAPE_GEOMETRY: Record<ShapeName, ShapeGeometry> = {
     hasGrommet: false, grometX: 0, grometY: 0, grometR: 0,
     symZone: { x: 24.83, y: 33.65, w: 182.08, h: 279.47 },
   },
+  // Four shapes added 2026-09-18 (Anthony's request), traced from his SVG
+  // source files (~/Desktop/*.svg — "long oval touchstone", "long oval
+  // keychain", "large circle touchstone", "small circle pendant") and
+  // re-keyed to the locked customer-facing names. Coordinates shifted to a
+  // local 0,0 origin (subtracting each file's own viewBox x/y) to match the
+  // convention every other entry in this table already uses.
+  "Tall Touchstone": {
+    W: 70.87, H: 172.91,
+    clipPath: "M35.433 1.417L35.433 1.417C54.220 1.417 69.449 16.647 69.449 35.433L69.449 137.480C69.449 156.267 54.220 171.496 35.433 171.496L35.433 171.496C16.647 171.496 1.418 156.267 1.418 137.480L1.418 35.433C1.418 16.647 16.647 1.417 35.433 1.417Z",
+    hasGrommet: false, grometX: 0, grometY: 0, grometR: 0,
+    symZone: { x: 11.16, y: 20.36, w: 48.55, h: 132.20 },
+  },
+  "Keepsake Tag": {
+    W: 59.53, H: 155.91,
+    clipPath: "M29.764 1.417L29.764 1.417C45.419 1.417 58.110 14.108 58.110 29.763L58.110 126.141C58.110 141.797 45.419 154.488 29.764 154.488L29.764 154.488C14.108 154.488 1.417 141.797 1.417 126.141L1.417 29.763C1.417 14.108 14.108 1.417 29.764 1.417Z",
+    hasGrommet: true, grometX: 29.76, grometY: 14.07, grometR: 4.25,
+    symZone: { x: 10.22, y: 28.81, w: 39.09, h: 98.29 },
+  },
+  "Round Touchstone": {
+    W: 108.10, H: 108.10,
+    clipPath: "M0.900 54.051C0.900 24.697 24.696 0.901 54.050 0.901C83.404 0.901 107.200 24.697 107.200 54.051C107.200 83.404 83.404 107.200 54.050 107.200C24.696 107.200 0.900 83.404 0.900 54.051Z",
+    hasGrommet: false, grometX: 0, grometY: 0, grometR: 0,
+    symZone: { x: 16.36, y: 19.34, w: 75.39, h: 69.43 },
+  },
+  "Petite Circle Pendant": {
+    W: 95.13, H: 95.13,
+    clipPath: "M0.793 47.564C0.793 21.733 21.733 0.793 47.565 0.793C73.396 0.793 94.336 21.733 94.336 47.564C94.336 73.396 73.396 94.336 47.565 94.336C21.733 94.336 0.793 73.396 0.793 47.564Z",
+    hasGrommet: true, grometX: 47.57, grometY: 12.91, grometR: 4.25,
+    symZone: { x: 17.29, y: 23.41, w: 60.55, h: 55.76 },
+  },
 };
 
 // Eternal Love symbol path, ported from the sandbox's SYMBOL constant —
@@ -127,12 +157,17 @@ export const STROKE_STYLE_SYMBOLS: Record<string, number> = {
   "Infinity Symbol": 3.4,
 };
 
-export const INLAY_SWATCH: Record<string, { hex: string; metallic: boolean; grommetMetal: "gold" | "silver" }> = {
+export const INLAY_SWATCH: Record<string, { hex: string; metallic: boolean; grommetMetal: "gold" | "silver" | "gunmetal" }> = {
   Natural: { hex: "#C9BBA3", metallic: false, grommetMetal: "gold" },
   Gold: { hex: "#D4AF37", metallic: true, grommetMetal: "gold" },
   Silver: { hex: "#B8BEC4", metallic: true, grommetMetal: "silver" },
   White: { hex: "#E8E6E0", metallic: true, grommetMetal: "silver" },
   Turquoise: { hex: "#5FB3B3", metallic: false, grommetMetal: "silver" },
+  // Both added 2026-09-18 (Anthony's request) — real resin inlay colors, not
+  // placeholders. Swatch hexes are his picks (option "B" and "F") from a
+  // set shown for approval, not guessed.
+  "Metallic Black": { hex: "#2E2F33", metallic: true, grommetMetal: "gunmetal" },
+  Copper: { hex: "#A8672E", metallic: true, grommetMetal: "gold" },
 };
 
 // Dev-only flat swatch per stone, standing in for the real polished photo —

@@ -12,6 +12,8 @@ const INLAY_COLOR_TO_ORDER_FIELD: Record<string, string> = {
   Silver: "Silver",
   White: "Metallic White",
   Turquoise: "Turquoise",
+  "Metallic Black": "Metallic Black",
+  Copper: "Copper",
 };
 
 const LETTERING_STYLE_TO_ORDER_FIELD: Record<string, string> = {
@@ -19,10 +21,40 @@ const LETTERING_STYLE_TO_ORDER_FIELD: Record<string, string> = {
   Monument: "Bold Sans",
 };
 
-function generateOrderNumber() {
-  const stamp = new Date().toISOString().replace(/[-:T.]/g, "").slice(0, 14);
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `RMG-${stamp}-${rand}`;
+// RMG-YYMMDD-NNxx — e.g. "RMG-260918-01K3" for the first order on 2026-09-18.
+// Replaces a full timestamp+random string (2026-09-25, Anthony's call): too
+// long to be useful at a glance. NN is that day's running order count (a real
+// Notion lookup, not derived locally) so the number itself tells you both the
+// date and roughly how many orders came in that day; xx is a 2-character
+// random tie-breaker, not a uniqueness guarantee — the real unique join key
+// across an order's gems is still the separate "Order ID" field. A collision
+// on NNxx would only ever produce two human-readable labels that look alike,
+// never actual data loss, which is an acceptable tradeoff for a low-volume
+// family business over adding real locking for this.
+async function generateOrderNumber(): Promise<string> {
+  const now = new Date();
+  const dateStamp = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, "0")}${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+
+  let seq = 1;
+  if (hasNotionToken()) {
+    try {
+      const todayIso = now.toISOString().slice(0, 10);
+      const rows = await queryAllRows(NOTION_DB.orders, {
+        property: "Date Ordered",
+        date: { equals: todayIso },
+      });
+      seq = rows.length + 1;
+    } catch (err) {
+      // Falls back to "01" — a wrong count still produces a valid-looking,
+      // sortable order number, just not a perfectly accurate daily count.
+      console.warn("[orders] Failed to count today's orders for the sequence number, defaulting to 1", err);
+    }
+  }
+
+  const rand = Math.random().toString(36).slice(2, 4).toUpperCase();
+  return `RMG-${dateStamp}-${String(seq).padStart(2, "0")}${rand}`;
 }
 
 // Best-effort — a failure here shouldn't break order confirmation for the
@@ -69,7 +101,7 @@ export async function findOrdersByOrderId(orderId: string): Promise<{ id: string
 }
 
 export async function createOrder(input: OrderInput): Promise<{ orderNumber: string; pageId: string | null }> {
-  const orderNumber = generateOrderNumber();
+  const orderNumber = await generateOrderNumber();
 
   if (!hasNotionToken()) {
     console.warn("[orders] NOTION_TOKEN not set — order not written to Notion:", orderNumber, input);

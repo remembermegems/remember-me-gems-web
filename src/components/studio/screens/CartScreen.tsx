@@ -97,6 +97,7 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
             }))
           ),
           customer: address,
+          militaryDiscount: store.militaryDiscount,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -324,9 +325,35 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
       </div>
 
       {store.cart.length > 0 && (
-        <div className="text-center mb-8">
-          <p className="font-heading text-3xl text-cocoa">${grandTotal}</p>
-        </div>
+        <>
+          {/* Self-attested military/veteran discount (punch list #33) — one
+              checkbox for the whole order, not per-gem. No verification
+              vendor, matches the brand's trust-based tone rather than
+              treating customers as suspects. Applies a real Shopify discount
+              code (MILITARY10) at checkout creation — see createShopifyCheckout
+              in lib/shopify/checkout.ts — but can't actually be exercised
+              until #34 reconnects a live store (checkout is paused until
+              then). */}
+          <label className="flex items-center justify-center gap-2 mb-6 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={store.militaryDiscount}
+              onChange={(e) => store.setMilitaryDiscount(e.target.checked)}
+              className="w-4 h-4 rounded border-cocoa/30 text-gold focus:ring-gold"
+            />
+            <span className="font-body text-sm text-cocoa/80">
+              {copyText(
+                copy,
+                "cart_military_discount_label",
+                "I am an active-duty or veteran service member (10% discount applied at checkout)"
+              )}
+            </span>
+          </label>
+
+          <div className="text-center mb-8">
+            <p className="font-heading text-3xl text-cocoa">${grandTotal}</p>
+          </div>
+        </>
       )}
 
       {error && <p className="text-center text-red-600 text-sm mb-4">{error}</p>}

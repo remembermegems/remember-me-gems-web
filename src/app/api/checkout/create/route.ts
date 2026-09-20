@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const gems: GemBody[] = body.gems;
   const customer: CustomerBody = body.customer ?? {};
+  // Self-attested military/veteran discount checkbox (punch list #33) — only
+  // takes effect on the Shopify path below; the complimentary/paused path
+  // has no payment to discount.
+  const militaryDiscount: boolean = body.militaryDiscount === true;
 
   const [stones, copy] = await Promise.all([getStones(), getConfiguratorCopy()]);
   const betaMode = copyText(copy, "global_beta_mode", "true") === "true";
@@ -115,6 +119,7 @@ export async function POST(req: NextRequest) {
       addOnsPerOrder,
       orderId: sharedOrderId,
       customer,
+      militaryDiscount,
     });
     // Note: unlike Square, there's no redirect back to this site after
     // payment — Shopify hosts the checkout and lands the customer on its own

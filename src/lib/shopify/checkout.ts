@@ -209,16 +209,26 @@ function buyerIdentityFor(customer: CheckoutCustomer) {
   return Object.keys(identity).length > 0 ? identity : null;
 }
 
+// One flat discount code, created once in the Shopify admin (punch list
+// #33). The customer never sees or types this — checking the self-attested
+// checkbox in the cart just tells us to attach it here. Not yet reachable in
+// practice: hasShopifyCheckout() stays false (checkout paused) until #34
+// reconnects a real store, so this can't be exercised against a live cart
+// until then, but the wiring is correct and ready.
+const MILITARY_DISCOUNT_CODE = "MILITARY10";
+
 export async function createShopifyCheckout({
   orders,
   addOnsPerOrder,
   orderId,
   customer = {},
+  militaryDiscount = false,
 }: {
   orders: OrderInput[];
   addOnsPerOrder: ResolvedAddOn[][];
   orderId: string;
   customer?: CheckoutCustomer;
+  militaryDiscount?: boolean;
 }): Promise<{ checkoutUrl: string; cartId: string; total: string }> {
   const plan = buildCartLines(orders, addOnsPerOrder);
   const variantBySku = await resolveVariantIds(plan.map((l) => l.sku));
@@ -237,6 +247,7 @@ export async function createShopifyCheckout({
       // the Shopify order can be reconciled later.
       attributes: [{ key: "RMG Order ID", value: orderId }],
       ...(buyerIdentityFor(customer) ? { buyerIdentity: buyerIdentityFor(customer) } : {}),
+      ...(militaryDiscount ? { discountCodes: [MILITARY_DISCOUNT_CODE] } : {}),
       lines: plan.map((line) => ({
         merchandiseId: variantBySku.get(line.sku)!,
         quantity: line.quantity,

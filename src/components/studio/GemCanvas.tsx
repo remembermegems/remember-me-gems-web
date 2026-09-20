@@ -5,7 +5,7 @@ import { SHAPE_GEOMETRY, INLAY_SWATCH, STROKE_STYLE_SYMBOLS } from "@/lib/studio
 import { lighten, darken, ellipseGradientFill } from "@/lib/studio/renderUtils";
 import type { ShapeName } from "@/lib/notion/types";
 
-type SymbolInput = { name: string; path: string; viewBox: string } | null;
+export type SymbolInput = { name: string; path: string; viewBox: string } | null;
 
 // Shared across every GemCanvas instance so the same stone photo isn't
 // refetched every time it's redrawn (front/back, multiple screens, etc.) —
@@ -21,6 +21,16 @@ function getStoneImage(url: string): HTMLImageElement {
     // request outright (confirmed via net::ERR_FAILED). We never read pixels
     // back off this canvas (no toDataURL/getImageData), so the canvas being
     // "tainted" by a cross-origin draw doesn't matter here.
+    //
+    // IMPORTANT for punch list #31 (gem-render snapshot to Notion/Shopify):
+    // this tainting is exactly why a plain `canvas.toDataURL()` capture will
+    // throw a SecurityError on any real gem (every one draws a stone photo
+    // through this function). Capturing a PNG needs stone images loaded
+    // through a same-origin proxy (fetch the Notion S3 URL server-side,
+    // re-serve it with a permissive CORS header) feeding a separate,
+    // capture-only canvas instance with `img.crossOrigin = "anonymous"` set
+    // — not a change to this shared, already-hard-won render path. Found
+    // 2026-08-26 while building #31; not yet built.
     img.src = url;
     STONE_IMAGE_CACHE.set(url, img);
   }
@@ -61,6 +71,12 @@ export function GemCanvas({
   vignetteWidthFrac = 0.28,
   vignetteBlurFrac = 0.09,
   vignetteDarkness = 0.62,
+  // Both opt-in, added for the #31 gem-render snapshot capture (a hidden
+  // capture-only instance needs a handle to the actual <canvas> DOM node and
+  // a signal for "the real stone photo is drawn, not just the placeholder
+  // fill" — see GemSnapshotCapture.tsx). No effect on any existing call site.
+  canvasRef,
+  onRender,
 }: {
   shape: ShapeName;
   // Flat-color fallback — used directly when there's no real stone photo yet
@@ -83,6 +99,8 @@ export function GemCanvas({
   vignetteWidthFrac?: number;
   vignetteBlurFrac?: number;
   vignetteDarkness?: number;
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>;
+  onRender?: () => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const geo = SHAPE_GEOMETRY[shape];
@@ -108,6 +126,12 @@ export function GemCanvas({
     // color only when there's no photo yet, or while it's still loading.
     let awaitingImage: (() => void) | undefined;
     const stoneImg = stoneImageUrl ? getStoneImage(stoneImageUrl) : null;
+    // Real photo drawn, or nothing to wait for at all — either way this pass
+    // is the final one for this stoneImageUrl, as opposed to the placeholder
+    // fill below while a photo is still loading. onRender only fires here so
+    // a capture-only instance (GemSnapshotCapture) never grabs a flat-color
+    // placeholder frame instead of the real gem.
+    const isFinalDraw = !stoneImg || (stoneImg.complete && stoneImg.naturalWidth > 0);
     if (stoneImg && stoneImg.complete && stoneImg.naturalWidth > 0) {
       drawImageCover(ctx, stoneImg, 0, 0, geo.W, geo.H);
     } else {
@@ -266,7 +290,11 @@ export function GemCanvas({
       const gr = geo.grometR;
       const cx = geo.grometX;
       const cy = geo.grometY;
-      const metalBase = inlay.grommetMetal === "gold" ? "#C9A24B" : "#C7CDD4";
+      // Gunmetal added 2026-09-18 alongside the Metallic Black inlay color —
+      // Anthony has real gunmetal-finish grommet hardware for it, distinct
+      // from the existing gold/silver stock.
+      const metalBase =
+        inlay.grommetMetal === "gold" ? "#C9A24B" : inlay.grommetMetal === "gunmetal" ? "#4A4A4E" : "#C7CDD4";
 
       ctx.save();
       ctx.beginPath();
@@ -293,6 +321,8 @@ export function GemCanvas({
       ctx.restore();
     }
 
+    if (isFinalDraw) onRender?.();
+
     return awaitingImage;
   }, [
     shape,
@@ -308,6 +338,7 @@ export function GemCanvas({
     vignetteWidthFrac,
     vignetteBlurFrac,
     vignetteDarkness,
+    onRender,
   ]);
 
   const scale = Math.min(1, maxWidth / geo.W);
@@ -335,7 +366,10 @@ export function GemCanvas({
   return (
     <div style={{ width: geo.W * scale, height: geo.H * scale, overflow: "hidden" }}>
       <canvas
-        ref={ref}
+        ref={(el) => {
+          ref.current = el;
+          if (canvasRef) canvasRef.current = el;
+        }}
         {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": description })}
         style={{ width: geo.W, height: geo.H, transform: `scale(${scale})`, transformOrigin: "top left" }}
       />

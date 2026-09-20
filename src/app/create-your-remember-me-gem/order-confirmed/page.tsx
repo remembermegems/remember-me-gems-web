@@ -3,6 +3,7 @@ import { getStones } from "@/lib/notion/stones";
 import { getSymbols } from "@/lib/notion/symbols";
 import { CtaLink } from "@/components/CtaButton";
 import { GemCanvas } from "@/components/studio/GemCanvas";
+import { GemSnapshotCapture } from "@/components/studio/GemSnapshotCapture";
 import { stoneSwatchColor } from "@/lib/studio/shapeGeometry";
 import type { OrderInput, Stone, Symbol } from "@/lib/notion/types";
 import { PurchaseEvent } from "@/components/PurchaseEvent";
@@ -12,11 +13,20 @@ function GemSummary({
   stones,
   symbols,
   isComplimentary,
+  pageId,
+  skipSnapshot,
 }: {
   order: OrderInput;
   stones: Stone[];
   symbols: Symbol[];
   isComplimentary: boolean;
+  // Null when NOTION_TOKEN is unset or the order write failed upstream —
+  // GemSnapshotCapture already no-ops on null, this is just for clarity here.
+  pageId: string | null;
+  // True on a reload/revisit of this same order (findOrdersByOrderId already
+  // found it) — same idempotency guard as the GA4 purchase event above, so a
+  // page reload doesn't re-upload the same PNG over and over.
+  skipSnapshot: boolean;
 }) {
   const stone = stones.find((s) => s.id === order.stoneId);
   const symbol = symbols.find((s) => s.name === order.symbolName);
@@ -35,6 +45,16 @@ function GemSummary({
 
   return (
     <div className="mb-10">
+      {!skipSnapshot && (
+        <GemSnapshotCapture
+          pageId={pageId}
+          shape={order.shapeName}
+          stoneColor={stoneColor}
+          stoneImageUrl={stone?.stoneImageUrl}
+          inlayColor={order.inlayColor}
+          symbol={symbol ? { name: symbol.name, path: symbol.svgPathData, viewBox: symbol.viewBox } : null}
+        />
+      )}
       <div className="flex justify-center gap-8 my-10 flex-wrap">
         <div className="text-center">
           <GemCanvas
@@ -179,7 +199,15 @@ export default async function OrderConfirmedPage({
       )}
 
       {orders.map((order, i) => (
-        <GemSummary key={i} order={order} stones={stones} symbols={symbols} isComplimentary={isComplimentary} />
+        <GemSummary
+          key={i}
+          order={order}
+          stones={stones}
+          symbols={symbols}
+          isComplimentary={isComplimentary}
+          pageId={orderResults[i]?.pageId ?? null}
+          skipSnapshot={alreadyRecorded}
+        />
       ))}
 
       {orders.length > 1 && (

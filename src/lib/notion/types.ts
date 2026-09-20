@@ -36,6 +36,19 @@ export type WebsiteCopySection = {
   // go here) and from reusing `headline`, which describes the section rather
   // than the picture. Empty until Anthony fills it in alongside each upload.
   altText: string;
+  // Second image slot — added for the Home page's "Up Close" section (punch
+  // list #32), which shows a front photo and a back photo of one gem. Empty
+  // on every other row; unrelated to `imageUrl`/`altText` above.
+  image2Url: string | null;
+  image2AltText: string;
+  // Mobile-specific crop for a full-bleed hero photo (punch list #32) — the
+  // Home hero needs a different crop on narrow screens than the wide
+  // landscape crop `imageUrl` holds for desktop. Falls back to `imageUrl`
+  // when empty, so every other row (which never sets this) is unaffected.
+  imageMobileUrl: string | null;
+  // Pipe-separated trust checkmarks under the Home hero CTA (punch list #32),
+  // same parsing convention as `links`. Empty on every row except Home's Hero.
+  trustPoints: string;
   // Video from a platform URL (YouTube/Vimeo/TikTok/Instagram) — parsed, never
   // injected raw. See VideoEmbed.tsx.
   videoUrl: string;
@@ -128,13 +141,18 @@ export const SHAPE_NAMES = [
   "Shield",
   "Oval Touchstone",
   "Dog Tag Touchstone",
+  // Added 2026-09-18 (Anthony's request).
+  "Tall Touchstone",
+  "Keepsake Tag",
+  "Round Touchstone",
+  "Petite Circle Pendant",
 ] as const;
 
 export type ShapeName = (typeof SHAPE_NAMES)[number];
 
 export type CarryType = "Wear It" | "Carry It" | "Hang It";
 
-export const INLAY_COLORS = ["Natural", "Gold", "Silver", "White", "Turquoise"] as const;
+export const INLAY_COLORS = ["Natural", "Gold", "Silver", "White", "Turquoise", "Metallic Black", "Copper"] as const;
 export type InlayColor = (typeof INLAY_COLORS)[number];
 
 export type LetteringStyle = "Flowing Script" | "Monument";
