@@ -196,9 +196,13 @@ function buyerIdentityFor(customer: CheckoutCustomer) {
         deliveryAddress: {
           address1: customer.streetAddress,
           city: customer.city,
-          provinceCode: customer.state,
+          // Storefront API's MailingAddressInput takes `province`/`country`,
+          // not `provinceCode`/`countryCode` — found 2026-09-20 testing the
+          // reconnected store (#34): those fields don't exist on this input
+          // type and Shopify rejects the whole cartCreate call outright.
+          province: customer.state,
           zip: customer.zip,
-          countryCode: "US",
+          country: "United States",
           ...(firstName ? { firstName } : {}),
           ...(rest.length ? { lastName: rest.join(" ") } : {}),
           ...(customer.customerPhone ? { phone: customer.customerPhone } : {}),
