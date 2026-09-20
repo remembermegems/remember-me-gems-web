@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useStudioStore, cartQuantity, cartLineTotal } from "@/store/studio";
 import { GemCanvas } from "../GemCanvas";
 import { SectionDivider } from "@/components/SectionDivider";
@@ -41,6 +41,15 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
   // finished gem and nothing upstream in the Studio ever asked for one.
   const [collectingAddress, setCollectingAddress] = useState(false);
   const [address, setAddress] = useState<AddressForm>(EMPTY_ADDRESS);
+
+  // Gem-render capture (punch list #31) — one PNG per distinct cart row,
+  // captured in the background as soon as the cart renders so it's ready by
+  // the time "Start checkout" is pressed, without making the customer wait
+  // on it. Keyed by cart index (not by physical-piece count) since identical
+  // quantity copies share one render — expanded out to match `gems` only
+  // when building the checkout request body below.
+  const renderCaptures = useRef<Record<number, string>>({});
+  const captureCanvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
 
   const grandTotal = store.cart.reduce((sum, g) => sum + cartLineTotal(g), 0);
 
@@ -98,6 +107,13 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
           ),
           customer: address,
           militaryDiscount: store.militaryDiscount,
+          // Expanded to line up 1:1 with `gems` above — every copy of a
+          // repeated quantity gets the same captured render, since they're
+          // identical pieces. Missing/uncaptured entries become undefined,
+          // which the API route already treats as "skip this one."
+          gemRenders: store.cart.flatMap((g, i) =>
+            Array.from({ length: cartQuantity(g) }, () => renderCaptures.current[i])
+          ),
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -233,6 +249,44 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
 
   return (
     <div className="max-w-[720px] mx-auto px-6 py-16">
+      {/* Hidden, capture-only canvases (punch list #31) — one per distinct
+          cart row, loading its stone photo through the same-origin proxy so
+          toDataURL() doesn't throw (see the long comment in GemCanvas.tsx
+          and GemSnapshotCapture.tsx for why: Notion's signed S3 urls taint a
+          canvas for pixel readback). Rendered as soon as the cart shows, so
+          the capture is ready well before "Start checkout" is ever clicked. */}
+      <div aria-hidden style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", left: -9999, top: -9999 }}>
+        {store.cart.map((g, i) => (
+          <GemCanvas
+            key={i}
+            shape={g.shape}
+            stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
+            stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
+            inlayColor={g.inlayColor}
+            symbol={g.symbol ? { name: g.symbol.name, path: g.symbol.svgPathData, viewBox: g.symbol.viewBox } : null}
+            side="front"
+            maxWidth={480}
+            canvasRef={{
+              get current() {
+                return captureCanvasRefs.current[i] ?? null;
+              },
+              set current(el: HTMLCanvasElement | null) {
+                captureCanvasRefs.current[i] = el;
+              },
+            }}
+            onRender={() => {
+              const canvas = captureCanvasRefs.current[i];
+              if (!canvas || renderCaptures.current[i]) return;
+              try {
+                renderCaptures.current[i] = canvas.toDataURL("image/png");
+              } catch (err) {
+                console.warn("[CartScreen] gem render capture failed", err);
+              }
+            }}
+          />
+        ))}
+      </div>
+
       <div className="text-center mb-10">
         <h2 className="font-heading text-3xl text-cocoa mb-2" style={{ color: "#4E3F35" }}>
           {store.cart.length === 0

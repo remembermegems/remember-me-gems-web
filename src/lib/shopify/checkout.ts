@@ -77,7 +77,7 @@ export async function resolveVariantIds(skus: string[]): Promise<Map<string, str
   return map;
 }
 
-function gemAttributes(order: OrderInput, index: number): CartAttribute[] {
+function gemAttributes(order: OrderInput, index: number, renderUrl?: string | null): CartAttribute[] {
   const years = [order.birthYear, order.deathYear].filter(Boolean).join("–");
   const attrs: CartAttribute[] = [
     { key: "Gem", value: `${index + 1}` },
@@ -131,15 +131,26 @@ function gemAttributes(order: OrderInput, index: number): CartAttribute[] {
     { key: "_beta_mode", value: String(order.betaMode) }
   );
 
+  // Punch list #31 — a stable Shopify-hosted CDN url (not Notion's signed
+  // one, which expires in ~1 hour) for the order-confirmation email Liquid
+  // template to render. Best-effort: absent whenever the upload failed or
+  // the customer's browser couldn't produce a render, and the order still
+  // goes through fine without it.
+  if (renderUrl) attrs.push({ key: "_gem_render_url", value: renderUrl });
+
   return attrs;
 }
 
 export type CartLinePlan = { sku: string; quantity: number; attributes: CartAttribute[] };
 
-export function buildCartLines(orders: OrderInput[], addOnsPerOrder: ResolvedAddOn[][]): CartLinePlan[] {
+export function buildCartLines(
+  orders: OrderInput[],
+  addOnsPerOrder: ResolvedAddOn[][],
+  renderUrls: (string | null)[] = []
+): CartLinePlan[] {
   const lines: CartLinePlan[] = [];
   orders.forEach((order, i) => {
-    const attributes = gemAttributes(order, i);
+    const attributes = gemAttributes(order, i, renderUrls[i]);
     lines.push({ sku: stoneSku(order.stoneName), quantity: 1, attributes });
     for (const addOn of addOnsPerOrder[i] ?? []) {
       lines.push({
@@ -215,10 +226,7 @@ function buyerIdentityFor(customer: CheckoutCustomer) {
 
 // One flat discount code, created once in the Shopify admin (punch list
 // #33). The customer never sees or types this — checking the self-attested
-// checkbox in the cart just tells us to attach it here. Not yet reachable in
-// practice: hasShopifyCheckout() stays false (checkout paused) until #34
-// reconnects a real store, so this can't be exercised against a live cart
-// until then, but the wiring is correct and ready.
+// checkbox in the cart just tells us to attach it here.
 const MILITARY_DISCOUNT_CODE = "MILITARY10";
 
 export async function createShopifyCheckout({
@@ -227,14 +235,20 @@ export async function createShopifyCheckout({
   orderId,
   customer = {},
   militaryDiscount = false,
+  renderUrls = [],
 }: {
   orders: OrderInput[];
   addOnsPerOrder: ResolvedAddOn[][];
   orderId: string;
   customer?: CheckoutCustomer;
   militaryDiscount?: boolean;
+  // Stable Shopify-hosted CDN urls, one per gem (punch list #31) — already
+  // uploaded by the caller (route.ts) before this runs, since the upload
+  // itself needs the admin token and this function only builds the
+  // Storefront cart.
+  renderUrls?: (string | null)[];
 }): Promise<{ checkoutUrl: string; cartId: string; total: string }> {
-  const plan = buildCartLines(orders, addOnsPerOrder);
+  const plan = buildCartLines(orders, addOnsPerOrder, renderUrls);
   const variantBySku = await resolveVariantIds(plan.map((l) => l.sku));
 
   const missing = Array.from(new Set(plan.map((l) => l.sku).filter((sku) => !variantBySku.has(sku))));

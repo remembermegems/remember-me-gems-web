@@ -4,6 +4,7 @@ import { getConfiguratorCopy, copyText } from "@/lib/notion/configuratorCopy";
 import { calculatePrice, resolveAddOns, type ResolvedAddOn } from "@/lib/studio/pricing";
 import { hasShopifyCheckout } from "@/lib/shopify/client";
 import { createShopifyCheckout, ShopifyCatalogOutOfSyncError } from "@/lib/shopify/checkout";
+import { uploadGemRenderToShopify } from "@/lib/shopify/files";
 import type { ShapeName, OrderInput } from "@/lib/notion/types";
 
 type GemBody = {
@@ -43,6 +44,11 @@ export async function POST(req: NextRequest) {
   // takes effect on the Shopify path below; the complimentary/paused path
   // has no payment to discount.
   const militaryDiscount: boolean = body.militaryDiscount === true;
+  // One PNG data URL per gem (punch list #31), captured client-side from a
+  // same-origin, capture-safe canvas (see GemSnapshotCapture.tsx's comment on
+  // why the customer-visible canvas can't be read back directly). Missing
+  // entries are fine — the render is a nice-to-have, never load-bearing.
+  const gemRenders: (string | undefined)[] = Array.isArray(body.gemRenders) ? body.gemRenders : [];
 
   const [stones, copy] = await Promise.all([getStones(), getConfiguratorCopy()]);
   const betaMode = copyText(copy, "global_beta_mode", "true") === "true";
@@ -53,7 +59,8 @@ export async function POST(req: NextRequest) {
   // Parallel to `orders` — the structured add-ons for each gem, so the Shopify
   // cart can add a real line item per upcharge instead of re-deriving them.
   const addOnsPerOrder: ResolvedAddOn[][] = [];
-  for (const gem of gems) {
+  for (let gi = 0; gi < gems.length; gi += 1) {
+    const gem = gems[gi];
     const stone = stones.find((s) => s.name === gem.stoneName);
     if (!stone) {
       return NextResponse.json({ error: `Unknown stone: ${gem.stoneName}` }, { status: 400 });
@@ -113,6 +120,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ checkoutUrl: redirectUrl });
   }
 
+  // Upload happens only once we know we're actually going to Shopify — no
+  // point spending API calls on the complimentary path above, which never
+  // sees these urls at all. Parallelized since each upload is independently
+  // slow (staged upload + fileCreate + a short poll for processing).
+  const renderUrls = await Promise.all(
+    orders.map((_, i) => {
+      const dataUrl = gemRenders[i];
+      if (!dataUrl?.startsWith("data:image/png;base64,")) return Promise.resolve(null);
+      const buffer = Buffer.from(dataUrl.slice("data:image/png;base64,".length), "base64");
+      return uploadGemRenderToShopify(buffer, `gem-render-${sharedOrderId}-${i}.png`);
+    })
+  );
+
   try {
     const { checkoutUrl } = await createShopifyCheckout({
       orders,
@@ -120,6 +140,7 @@ export async function POST(req: NextRequest) {
       orderId: sharedOrderId,
       customer,
       militaryDiscount,
+      renderUrls,
     });
     // Note: unlike Square, there's no redirect back to this site after
     // payment — Shopify hosts the checkout and lands the customer on its own
