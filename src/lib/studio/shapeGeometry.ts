@@ -166,7 +166,10 @@ export const INLAY_SWATCH: Record<string, { hex: string; metallic: boolean; grom
   // Both added 2026-09-18 (Anthony's request) — real resin inlay colors, not
   // placeholders. Swatch hexes are his picks (option "B" and "F") from a
   // set shown for approval, not guessed.
-  "Metallic Black": { hex: "#2E2F33", metallic: true, grommetMetal: "gunmetal" },
+  // Lightened 50% toward gray from the original #2E2F33 (2026-09-22,
+  // Anthony's call) — the original read as too close to true black and
+  // disappeared against darker stones like Red Jasper.
+  "Metallic Black": { hex: "#73777C", metallic: true, grommetMetal: "gunmetal" },
   Copper: { hex: "#A8672E", metallic: true, grommetMetal: "gold" },
 };
 

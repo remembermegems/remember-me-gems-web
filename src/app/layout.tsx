@@ -55,7 +55,10 @@ export default async function RootLayout({
         <BetaBanner show={betaMode} text={bannerText} />
         <Nav logoUrl={logoUrl} />
         <main className="flex-1">{children}</main>
-        <Footer eternalLoveSymbol={eternalLoveSymbol ? { path: eternalLoveSymbol.svgPathData, viewBox: eternalLoveSymbol.viewBox } : null} />
+        <Footer
+          eternalLoveSymbol={eternalLoveSymbol ? { path: eternalLoveSymbol.svgPathData, viewBox: eternalLoveSymbol.viewBox } : null}
+          copy={configuratorCopy}
+        />
       </body>
     </html>
   );

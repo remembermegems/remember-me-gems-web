@@ -77,7 +77,9 @@ export async function resolveVariantIds(skus: string[]): Promise<Map<string, str
   return map;
 }
 
-function gemAttributes(order: OrderInput, index: number, renderUrl?: string | null): CartAttribute[] {
+type GemRenderUrls = { front: string | null; back: string | null };
+
+function gemAttributes(order: OrderInput, index: number, renderUrls?: GemRenderUrls | null): CartAttribute[] {
   const years = [order.birthYear, order.deathYear].filter(Boolean).join("–");
   const attrs: CartAttribute[] = [
     { key: "Gem", value: `${index + 1}` },
@@ -131,12 +133,16 @@ function gemAttributes(order: OrderInput, index: number, renderUrl?: string | nu
     { key: "_beta_mode", value: String(order.betaMode) }
   );
 
-  // Punch list #31 — a stable Shopify-hosted CDN url (not Notion's signed
-  // one, which expires in ~1 hour) for the order-confirmation email Liquid
+  // Punch list #31 — stable Shopify-hosted CDN urls (not Notion's signed
+  // ones, which expire in ~1 hour) for the order-confirmation email Liquid
   // template to render. Best-effort: absent whenever the upload failed or
   // the customer's browser couldn't produce a render, and the order still
-  // goes through fine without it.
-  if (renderUrl) attrs.push({ key: "_gem_render_url", value: renderUrl });
+  // goes through fine without them. "_gem_render_url" is kept as an alias
+  // for the front image so the already-pasted email snippet (which only
+  // knows that key) keeps working without a second edit.
+  if (renderUrls?.front) attrs.push({ key: "_gem_render_url", value: renderUrls.front });
+  if (renderUrls?.front) attrs.push({ key: "_gem_render_url_front", value: renderUrls.front });
+  if (renderUrls?.back) attrs.push({ key: "_gem_render_url_back", value: renderUrls.back });
 
   return attrs;
 }
@@ -146,7 +152,7 @@ export type CartLinePlan = { sku: string; quantity: number; attributes: CartAttr
 export function buildCartLines(
   orders: OrderInput[],
   addOnsPerOrder: ResolvedAddOn[][],
-  renderUrls: (string | null)[] = []
+  renderUrls: (GemRenderUrls | null)[] = []
 ): CartLinePlan[] {
   const lines: CartLinePlan[] = [];
   orders.forEach((order, i) => {
@@ -242,14 +248,25 @@ export async function createShopifyCheckout({
   orderId: string;
   customer?: CheckoutCustomer;
   militaryDiscount?: boolean;
-  // Stable Shopify-hosted CDN urls, one per gem (punch list #31) — already
-  // uploaded by the caller (route.ts) before this runs, since the upload
-  // itself needs the admin token and this function only builds the
-  // Storefront cart.
-  renderUrls?: (string | null)[];
+  // Stable Shopify-hosted CDN urls, one {front, back} pair per gem (punch
+  // list #31) — uploaded by the caller (route.ts), which needs the admin
+  // token this function doesn't have. Accepts a Promise (rather than the
+  // caller awaiting it first) so the slow part of that upload — staged
+  // upload + fileCreate + processing poll — runs concurrently with the
+  // variant lookup below instead of blocking it. Checkout felt noticeably
+  // slower once the back-of-gem render doubled the upload work (2026-09-22);
+  // this recovers the seconds that cost by overlapping the two independent
+  // Shopify calls instead of running them one after another.
+  renderUrls?: (GemRenderUrls | null)[] | Promise<(GemRenderUrls | null)[]>;
 }): Promise<{ checkoutUrl: string; cartId: string; total: string }> {
-  const plan = buildCartLines(orders, addOnsPerOrder, renderUrls);
-  const variantBySku = await resolveVariantIds(plan.map((l) => l.sku));
+  // SKUs don't depend on renderUrls at all, so the variant lookup can start
+  // immediately, in parallel with whatever renderUrls resolves to.
+  const skus = buildCartLines(orders, addOnsPerOrder, []).map((l) => l.sku);
+  const [resolvedRenderUrls, variantBySku] = await Promise.all([
+    Promise.resolve(renderUrls ?? []),
+    resolveVariantIds(skus),
+  ]);
+  const plan = buildCartLines(orders, addOnsPerOrder, resolvedRenderUrls);
 
   const missing = Array.from(new Set(plan.map((l) => l.sku).filter((sku) => !variantBySku.has(sku))));
   if (missing.length > 0) throw new ShopifyCatalogOutOfSyncError(missing);

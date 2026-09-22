@@ -44,11 +44,13 @@ export async function POST(req: NextRequest) {
   // takes effect on the Shopify path below; the complimentary/paused path
   // has no payment to discount.
   const militaryDiscount: boolean = body.militaryDiscount === true;
-  // One PNG data URL per gem (punch list #31), captured client-side from a
-  // same-origin, capture-safe canvas (see GemSnapshotCapture.tsx's comment on
-  // why the customer-visible canvas can't be read back directly). Missing
-  // entries are fine — the render is a nice-to-have, never load-bearing.
-  const gemRenders: (string | undefined)[] = Array.isArray(body.gemRenders) ? body.gemRenders : [];
+  // One PNG data URL per gem, per side (punch list #31), captured client-side
+  // from a same-origin, capture-safe canvas (see GemSnapshotCapture.tsx's
+  // comment on why the customer-visible canvas can't be read back directly).
+  // Missing entries are fine — the render is a nice-to-have, never
+  // load-bearing.
+  const gemRendersFront: (string | undefined)[] = Array.isArray(body.gemRendersFront) ? body.gemRendersFront : [];
+  const gemRendersBack: (string | undefined)[] = Array.isArray(body.gemRendersBack) ? body.gemRendersBack : [];
 
   const [stones, copy] = await Promise.all([getStones(), getConfiguratorCopy()]);
   const betaMode = copyText(copy, "global_beta_mode", "true") === "true";
@@ -124,12 +126,22 @@ export async function POST(req: NextRequest) {
   // point spending API calls on the complimentary path above, which never
   // sees these urls at all. Parallelized since each upload is independently
   // slow (staged upload + fileCreate + a short poll for processing).
-  const renderUrls = await Promise.all(
-    orders.map((_, i) => {
-      const dataUrl = gemRenders[i];
-      if (!dataUrl?.startsWith("data:image/png;base64,")) return Promise.resolve(null);
-      const buffer = Buffer.from(dataUrl.slice("data:image/png;base64,".length), "base64");
-      return uploadGemRenderToShopify(buffer, `gem-render-${sharedOrderId}-${i}.png`);
+  function uploadIfPresent(dataUrl: string | undefined, filename: string): Promise<string | null> {
+    if (!dataUrl?.startsWith("data:image/png;base64,")) return Promise.resolve(null);
+    const buffer = Buffer.from(dataUrl.slice("data:image/png;base64,".length), "base64");
+    return uploadGemRenderToShopify(buffer, filename);
+  }
+  // Not awaited here — passed straight through as a Promise so
+  // createShopifyCheckout can run Shopify's variant lookup at the same time
+  // instead of waiting for these uploads to finish first (see the comment
+  // on its renderUrls param).
+  const renderUrlsPromise = Promise.all(
+    orders.map(async (_, i) => {
+      const [front, back] = await Promise.all([
+        uploadIfPresent(gemRendersFront[i], `gem-render-${sharedOrderId}-${i}-front.png`),
+        uploadIfPresent(gemRendersBack[i], `gem-render-${sharedOrderId}-${i}-back.png`),
+      ]);
+      return { front, back };
     })
   );
 
@@ -140,7 +152,7 @@ export async function POST(req: NextRequest) {
       orderId: sharedOrderId,
       customer,
       militaryDiscount,
-      renderUrls,
+      renderUrls: renderUrlsPromise,
     });
     // Note: unlike Square, there's no redirect back to this site after
     // payment — Shopify hosts the checkout and lands the customer on its own

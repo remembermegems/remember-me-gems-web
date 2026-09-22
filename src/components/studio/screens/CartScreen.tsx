@@ -48,8 +48,9 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
   // on it. Keyed by cart index (not by physical-piece count) since identical
   // quantity copies share one render — expanded out to match `gems` only
   // when building the checkout request body below.
-  const renderCaptures = useRef<Record<number, string>>({});
+  const renderCaptures = useRef<Record<number, { front?: string; back?: string }>>({});
   const captureCanvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
+  const captureCanvasRefsBack = useRef<Record<number, HTMLCanvasElement | null>>({});
 
   const grandTotal = store.cart.reduce((sum, g) => sum + cartLineTotal(g), 0);
 
@@ -108,11 +109,14 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
           customer: address,
           militaryDiscount: store.militaryDiscount,
           // Expanded to line up 1:1 with `gems` above — every copy of a
-          // repeated quantity gets the same captured render, since they're
+          // repeated quantity gets the same captured renders, since they're
           // identical pieces. Missing/uncaptured entries become undefined,
           // which the API route already treats as "skip this one."
-          gemRenders: store.cart.flatMap((g, i) =>
-            Array.from({ length: cartQuantity(g) }, () => renderCaptures.current[i])
+          gemRendersFront: store.cart.flatMap((g, i) =>
+            Array.from({ length: cartQuantity(g) }, () => renderCaptures.current[i]?.front)
+          ),
+          gemRendersBack: store.cart.flatMap((g, i) =>
+            Array.from({ length: cartQuantity(g) }, () => renderCaptures.current[i]?.back)
           ),
         }),
       });
@@ -276,11 +280,41 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
             }}
             onRender={() => {
               const canvas = captureCanvasRefs.current[i];
-              if (!canvas || renderCaptures.current[i]) return;
+              if (!canvas || renderCaptures.current[i]?.front) return;
               try {
-                renderCaptures.current[i] = canvas.toDataURL("image/png");
+                renderCaptures.current[i] = { ...renderCaptures.current[i], front: canvas.toDataURL("image/png") };
               } catch (err) {
                 console.warn("[CartScreen] gem render capture failed", err);
+              }
+            }}
+          />
+        ))}
+        {store.cart.map((g, i) => (
+          <GemCanvas
+            key={`back-${i}`}
+            shape={g.shape}
+            stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
+            stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
+            inlayColor={g.inlayColor}
+            initials={g.initials}
+            letteringStyle={g.letteringStyle}
+            side="back"
+            maxWidth={480}
+            canvasRef={{
+              get current() {
+                return captureCanvasRefsBack.current[i] ?? null;
+              },
+              set current(el: HTMLCanvasElement | null) {
+                captureCanvasRefsBack.current[i] = el;
+              },
+            }}
+            onRender={() => {
+              const canvas = captureCanvasRefsBack.current[i];
+              if (!canvas || renderCaptures.current[i]?.back) return;
+              try {
+                renderCaptures.current[i] = { ...renderCaptures.current[i], back: canvas.toDataURL("image/png") };
+              } catch (err) {
+                console.warn("[CartScreen] gem back-render capture failed", err);
               }
             }}
           />
