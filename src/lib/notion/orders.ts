@@ -118,6 +118,9 @@ export async function createOrder(input: OrderInput): Promise<{ orderNumber: str
   const page = await createPage(NOTION_DB.orders, {
     "Order Number": { title: [{ text: { content: orderNumber } }] },
     "Order ID": { rich_text: [{ text: { content: input.orderId } }] },
+    ...(input.shopifyOrderNumber
+      ? { "Shopify Order #": { rich_text: [{ text: { content: input.shopifyOrderNumber } }] } }
+      : {}),
     // Everything else in "kit shipped / ash arrived / gem shipped" is a
     // manual, physical-fulfillment step Anthony tracks by hand — only the
     // order's own creation date is known at write time, so only this one

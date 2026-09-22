@@ -193,4 +193,11 @@ export type OrderInput = {
   // order's rows in "RMG Orders & Production" can be grouped even though
   // each gem keeps its own row/status for production tracking.
   orderId: string;
+  // Shopify's own order number (e.g. "#1001") — the one the customer
+  // actually sees, on the checkout receipt and in every email Shopify sends
+  // them. Recorded on the Notion row so Anthony can look an order up by
+  // either number when a customer references "order #1001" instead of our
+  // internal RMG-YYMMDD-NNxx format. Only set for real Shopify orders — the
+  // complimentary/paused-checkout path has no Shopify order at all.
+  shopifyOrderNumber?: string;
 };
