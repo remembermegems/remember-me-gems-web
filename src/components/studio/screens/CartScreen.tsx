@@ -81,6 +81,13 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
       })),
     });
     try {
+      // Give any still-rendering capture canvas a few seconds to finish, so a
+      // quick click-through doesn't send an order with no gem images.
+      for (let waited = 0; waited < 4000; waited += 250) {
+        const allCaptured = store.cart.every((_, i) => renderCaptures.current[i]?.front && renderCaptures.current[i]?.back);
+        if (allCaptured) break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
       const res = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,6 +137,75 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
     }
   }
 
+  // Hidden, capture-only canvases (punch list #31). Defined once and rendered
+  // in EVERY view below: they used to live only in the cart-list view, so
+  // opening the address form unmounted them, and any render not captured by
+  // that moment was lost for good (the order then had no gem images in its
+  // confirmation email — seen on the beta site, 2026-09-23).
+  const captureCanvases = (
+  <div aria-hidden style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", left: -9999, top: -9999 }}>
+    {store.cart.map((g, i) => (
+      <GemCanvas
+        key={i}
+        shape={g.shape}
+        stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
+        stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
+        inlayColor={g.inlayColor}
+        symbol={g.symbol ? { name: g.symbol.name, path: g.symbol.svgPathData, viewBox: g.symbol.viewBox } : null}
+        side="front"
+        maxWidth={480}
+        canvasRef={{
+          get current() {
+            return captureCanvasRefs.current[i] ?? null;
+          },
+          set current(el: HTMLCanvasElement | null) {
+            captureCanvasRefs.current[i] = el;
+          },
+        }}
+        onRender={() => {
+          const canvas = captureCanvasRefs.current[i];
+          if (!canvas || renderCaptures.current[i]?.front) return;
+          try {
+            renderCaptures.current[i] = { ...renderCaptures.current[i], front: canvas.toDataURL("image/png") };
+          } catch (err) {
+            console.warn("[CartScreen] gem render capture failed", err);
+          }
+        }}
+      />
+    ))}
+    {store.cart.map((g, i) => (
+      <GemCanvas
+        key={`back-${i}`}
+        shape={g.shape}
+        stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
+        stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
+        inlayColor={g.inlayColor}
+        initials={g.initials}
+        letteringStyle={g.letteringStyle}
+        side="back"
+        maxWidth={480}
+        canvasRef={{
+          get current() {
+            return captureCanvasRefsBack.current[i] ?? null;
+          },
+          set current(el: HTMLCanvasElement | null) {
+            captureCanvasRefsBack.current[i] = el;
+          },
+        }}
+        onRender={() => {
+          const canvas = captureCanvasRefsBack.current[i];
+          if (!canvas || renderCaptures.current[i]?.back) return;
+          try {
+            renderCaptures.current[i] = { ...renderCaptures.current[i], back: canvas.toDataURL("image/png") };
+          } catch (err) {
+            console.warn("[CartScreen] gem back-render capture failed", err);
+          }
+        }}
+      />
+    ))}
+  </div>
+  );
+
   // Once checkout starts, clearCart() wipes the cart that this screen reads
   // from — but the redirect (a real page navigation, sometimes to an external
   // Square page) isn't instant. Render a simple redirect message instead of
@@ -145,6 +221,7 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
   if (collectingAddress) {
     return (
       <div className="max-w-[560px] mx-auto px-6 py-16">
+        {captureCanvases}
         <div className="text-center mb-10">
           <h2 className="font-heading text-3xl text-cocoa mb-2" style={{ color: "#4E3F35" }}>
             {copyText(copy, "cart_address_headline", "Where should we send it?")}
@@ -253,73 +330,7 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
 
   return (
     <div className="max-w-[720px] mx-auto px-6 py-16">
-      {/* Hidden, capture-only canvases (punch list #31) — one per distinct
-          cart row, loading its stone photo through the same-origin proxy so
-          toDataURL() doesn't throw (see the long comment in GemCanvas.tsx
-          and GemSnapshotCapture.tsx for why: Notion's signed S3 urls taint a
-          canvas for pixel readback). Rendered as soon as the cart shows, so
-          the capture is ready well before "Start checkout" is ever clicked. */}
-      <div aria-hidden style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", left: -9999, top: -9999 }}>
-        {store.cart.map((g, i) => (
-          <GemCanvas
-            key={i}
-            shape={g.shape}
-            stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
-            stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
-            inlayColor={g.inlayColor}
-            symbol={g.symbol ? { name: g.symbol.name, path: g.symbol.svgPathData, viewBox: g.symbol.viewBox } : null}
-            side="front"
-            maxWidth={480}
-            canvasRef={{
-              get current() {
-                return captureCanvasRefs.current[i] ?? null;
-              },
-              set current(el: HTMLCanvasElement | null) {
-                captureCanvasRefs.current[i] = el;
-              },
-            }}
-            onRender={() => {
-              const canvas = captureCanvasRefs.current[i];
-              if (!canvas || renderCaptures.current[i]?.front) return;
-              try {
-                renderCaptures.current[i] = { ...renderCaptures.current[i], front: canvas.toDataURL("image/png") };
-              } catch (err) {
-                console.warn("[CartScreen] gem render capture failed", err);
-              }
-            }}
-          />
-        ))}
-        {store.cart.map((g, i) => (
-          <GemCanvas
-            key={`back-${i}`}
-            shape={g.shape}
-            stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
-            stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
-            inlayColor={g.inlayColor}
-            initials={g.initials}
-            letteringStyle={g.letteringStyle}
-            side="back"
-            maxWidth={480}
-            canvasRef={{
-              get current() {
-                return captureCanvasRefsBack.current[i] ?? null;
-              },
-              set current(el: HTMLCanvasElement | null) {
-                captureCanvasRefsBack.current[i] = el;
-              },
-            }}
-            onRender={() => {
-              const canvas = captureCanvasRefsBack.current[i];
-              if (!canvas || renderCaptures.current[i]?.back) return;
-              try {
-                renderCaptures.current[i] = { ...renderCaptures.current[i], back: canvas.toDataURL("image/png") };
-              } catch (err) {
-                console.warn("[CartScreen] gem back-render capture failed", err);
-              }
-            }}
-          />
-        ))}
-      </div>
+      {captureCanvases}
 
       <div className="text-center mb-10">
         <h2 className="font-heading text-3xl text-cocoa mb-2" style={{ color: "#4E3F35" }}>
