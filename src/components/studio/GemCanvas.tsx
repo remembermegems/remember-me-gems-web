@@ -221,7 +221,7 @@ export function GemCanvas({
       const fontFamily = letteringStyle === "Flowing Script" ? "'Brush Script MT', cursive" : "'Arial Black', sans-serif";
       const cx = zone.x + zone.w / 2;
       const cy = zone.y + zone.h / 2;
-      const text = initials.toUpperCase();
+      const text = initials;
 
       // Vertical shapes swap which zone dimension constrains font size vs.
       // line length, since the text gets rotated 90° into the zone's tall

@@ -24,6 +24,7 @@ const jost = Jost({
 export const metadata: Metadata = {
   title: "Remember Me Gems",
   description: "Handcrafted memorial jewelry, made to keep them close.",
+  ...(process.env.SITE_NOINDEX === "true" ? { robots: { index: false, follow: false } } : {}),
 };
 
 export default async function RootLayout({

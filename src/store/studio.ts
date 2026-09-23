@@ -315,7 +315,10 @@ export const useStudioStore = create<StudioState>()(
       setSymbol: (s) => set({ symbol: s }),
       setInlayColor: (c) => set({ inlayColor: c }),
       setLetteringStyle: (l) => set({ letteringStyle: l }),
-      setInitials: (v) => set({ initials: v.slice(0, 3).toUpperCase() }),
+      // Case is preserved on purpose: each letter can be engraved capital or
+      // lowercase (e.g. "Mom"). The Dedication screen decides the default case
+      // for newly typed letters; this just stores what it hands over.
+      setInitials: (v) => set({ initials: v.slice(0, 3) }),
 
       // Checking the opt-out clears anything already typed, so a stray leftover
       // character can't reach the engraver after the customer said "no initials".
