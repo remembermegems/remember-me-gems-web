@@ -77,7 +77,9 @@ export async function resolveVariantIds(skus: string[]): Promise<Map<string, str
   return map;
 }
 
-function gemAttributes(order: OrderInput, index: number): CartAttribute[] {
+type GemRenderUrls = { front: string | null; back: string | null };
+
+function gemAttributes(order: OrderInput, index: number, renderUrls?: GemRenderUrls | null): CartAttribute[] {
   const years = [order.birthYear, order.deathYear].filter(Boolean).join("–");
   const attrs: CartAttribute[] = [
     { key: "Gem", value: `${index + 1}` },
@@ -131,15 +133,30 @@ function gemAttributes(order: OrderInput, index: number): CartAttribute[] {
     { key: "_beta_mode", value: String(order.betaMode) }
   );
 
+  // Punch list #31 — stable Shopify-hosted CDN urls (not Notion's signed
+  // ones, which expire in ~1 hour) for the order-confirmation email Liquid
+  // template to render. Best-effort: absent whenever the upload failed or
+  // the customer's browser couldn't produce a render, and the order still
+  // goes through fine without them. "_gem_render_url" is kept as an alias
+  // for the front image so the already-pasted email snippet (which only
+  // knows that key) keeps working without a second edit.
+  if (renderUrls?.front) attrs.push({ key: "_gem_render_url", value: renderUrls.front });
+  if (renderUrls?.front) attrs.push({ key: "_gem_render_url_front", value: renderUrls.front });
+  if (renderUrls?.back) attrs.push({ key: "_gem_render_url_back", value: renderUrls.back });
+
   return attrs;
 }
 
 export type CartLinePlan = { sku: string; quantity: number; attributes: CartAttribute[] };
 
-export function buildCartLines(orders: OrderInput[], addOnsPerOrder: ResolvedAddOn[][]): CartLinePlan[] {
+export function buildCartLines(
+  orders: OrderInput[],
+  addOnsPerOrder: ResolvedAddOn[][],
+  renderUrls: (GemRenderUrls | null)[] = []
+): CartLinePlan[] {
   const lines: CartLinePlan[] = [];
   orders.forEach((order, i) => {
-    const attributes = gemAttributes(order, i);
+    const attributes = gemAttributes(order, i, renderUrls[i]);
     lines.push({ sku: stoneSku(order.stoneName), quantity: 1, attributes });
     for (const addOn of addOnsPerOrder[i] ?? []) {
       lines.push({
@@ -196,9 +213,13 @@ function buyerIdentityFor(customer: CheckoutCustomer) {
         deliveryAddress: {
           address1: customer.streetAddress,
           city: customer.city,
-          provinceCode: customer.state,
+          // Storefront API's MailingAddressInput takes `province`/`country`,
+          // not `provinceCode`/`countryCode` — found 2026-09-20 testing the
+          // reconnected store (#34): those fields don't exist on this input
+          // type and Shopify rejects the whole cartCreate call outright.
+          province: customer.state,
           zip: customer.zip,
-          countryCode: "US",
+          country: "United States",
           ...(firstName ? { firstName } : {}),
           ...(rest.length ? { lastName: rest.join(" ") } : {}),
           ...(customer.customerPhone ? { phone: customer.customerPhone } : {}),
@@ -209,19 +230,43 @@ function buyerIdentityFor(customer: CheckoutCustomer) {
   return Object.keys(identity).length > 0 ? identity : null;
 }
 
+// One flat discount code, created once in the Shopify admin (punch list
+// #33). The customer never sees or types this — checking the self-attested
+// checkbox in the cart just tells us to attach it here.
+const MILITARY_DISCOUNT_CODE = "MILITARY10";
+
 export async function createShopifyCheckout({
   orders,
   addOnsPerOrder,
   orderId,
   customer = {},
+  militaryDiscount = false,
+  renderUrls = [],
 }: {
   orders: OrderInput[];
   addOnsPerOrder: ResolvedAddOn[][];
   orderId: string;
   customer?: CheckoutCustomer;
+  militaryDiscount?: boolean;
+  // Stable Shopify-hosted CDN urls, one {front, back} pair per gem (punch
+  // list #31) — uploaded by the caller (route.ts), which needs the admin
+  // token this function doesn't have. Accepts a Promise (rather than the
+  // caller awaiting it first) so the slow part of that upload — staged
+  // upload + fileCreate + processing poll — runs concurrently with the
+  // variant lookup below instead of blocking it. Checkout felt noticeably
+  // slower once the back-of-gem render doubled the upload work (2026-09-22);
+  // this recovers the seconds that cost by overlapping the two independent
+  // Shopify calls instead of running them one after another.
+  renderUrls?: (GemRenderUrls | null)[] | Promise<(GemRenderUrls | null)[]>;
 }): Promise<{ checkoutUrl: string; cartId: string; total: string }> {
-  const plan = buildCartLines(orders, addOnsPerOrder);
-  const variantBySku = await resolveVariantIds(plan.map((l) => l.sku));
+  // SKUs don't depend on renderUrls at all, so the variant lookup can start
+  // immediately, in parallel with whatever renderUrls resolves to.
+  const skus = buildCartLines(orders, addOnsPerOrder, []).map((l) => l.sku);
+  const [resolvedRenderUrls, variantBySku] = await Promise.all([
+    Promise.resolve(renderUrls ?? []),
+    resolveVariantIds(skus),
+  ]);
+  const plan = buildCartLines(orders, addOnsPerOrder, resolvedRenderUrls);
 
   const missing = Array.from(new Set(plan.map((l) => l.sku).filter((sku) => !variantBySku.has(sku))));
   if (missing.length > 0) throw new ShopifyCatalogOutOfSyncError(missing);
@@ -237,6 +282,7 @@ export async function createShopifyCheckout({
       // the Shopify order can be reconciled later.
       attributes: [{ key: "RMG Order ID", value: orderId }],
       ...(buyerIdentityFor(customer) ? { buyerIdentity: buyerIdentityFor(customer) } : {}),
+      ...(militaryDiscount ? { discountCodes: [MILITARY_DISCOUNT_CODE] } : {}),
       lines: plan.map((line) => ({
         merchandiseId: variantBySku.get(line.sku)!,
         quantity: line.quantity,

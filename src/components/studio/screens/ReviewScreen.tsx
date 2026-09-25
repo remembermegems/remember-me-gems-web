@@ -158,7 +158,11 @@ export function ReviewScreen({ betaMode, copy }: { betaMode: boolean; copy: Reco
       <div className="text-center mb-8">
         {betaMode && <p className="text-cocoa/40 line-through text-sm">${launchTotal}</p>}
         <p className="font-heading text-3xl text-cocoa">${total}</p>
-        {betaMode && <p className="text-gold text-sm">Beta pricing — $100 off while we refine the process</p>}
+        {betaMode && (
+          <p className="text-gold text-sm">
+            {copyText(copy, "review_beta_pricing_note", "Beta pricing — $100 off while we refine the process")}
+          </p>
+        )}
       </div>
 
       {/* Ash-kit reassurance (punch list #1) — sits directly above Add to Cart

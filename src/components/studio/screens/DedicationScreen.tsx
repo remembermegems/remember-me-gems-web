@@ -42,6 +42,8 @@ export function DedicationScreen({ copy }: { copy: Record<string, string> }) {
   const canContinue = initialsResolved && firstName.trim().length > 0 && lastName.trim().length > 0;
 
   function writeInitial(index: number, raw: string) {
+    // Case is kept exactly as typed — what the customer types is what gets
+    // engraved (e.g. "Mom"), and the gem preview mirrors it.
     const char = raw.slice(-1);
     const chars = store.initials.padEnd(3, " ").split("");
     chars[index] = char;
@@ -111,10 +113,19 @@ export function DedicationScreen({ copy }: { copy: Record<string, string> }) {
               value={store.initials[i]?.trim() ?? ""}
               onChange={(e) => writeInitial(i, e.target.value)}
               onKeyDown={(e) => handleInitialKeyDown(i, e)}
-              className="w-14 h-14 text-center text-xl rounded-xl border border-cocoa/15 bg-warm-white font-heading uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-14 h-14 text-center text-xl rounded-xl border border-cocoa/15 bg-warm-white font-heading disabled:opacity-40 disabled:cursor-not-allowed"
             />
           ))}
         </div>
+        {!declined && (
+          <p className="text-center text-cocoa/50 text-xs mt-3">
+            {copyText(
+              copy,
+              "initials_case_helper",
+              "Type each letter the way you want it engraved. Capitals and lowercase are kept exactly as you type them, like Mom, Dad, Sis, or Pop."
+            )}
+          </p>
+        )}
       </div>
 
       <label className="flex items-center justify-center gap-2.5 mb-8 cursor-pointer">

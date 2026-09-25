@@ -100,6 +100,58 @@ export async function updatePage(pageId: string, properties: Record<string, any>
   return res.json();
 }
 
+// Notion's direct File Upload API needs a newer Notion-Version than the rest
+// of this app uses — scoped to just these two functions rather than bumping
+// the shared NOTION_VERSION constant, since that's read by every other call
+// site in the app and a version bump can silently change response shapes
+// elsewhere (see the comment on NOTION_VERSION in config.ts).
+const FILE_UPLOAD_NOTION_VERSION = "2025-09-03";
+
+// Uploads a file (e.g. a rendered gem PNG) and attaches it to a Files
+// property on an existing page — Notion's 3-step flow: create an upload
+// object, send the bytes to its one-time upload_url, then reference the
+// upload's id from the page property. Used by punch list #31 (order-row gem
+// snapshot); not used anywhere else yet.
+export async function uploadFileToPage(
+  pageId: string,
+  property: string,
+  buffer: Buffer,
+  filename: string,
+  contentType: string
+): Promise<void> {
+  const uploadRes = await fetch(`${NOTION_API}/file_uploads`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+      "Notion-Version": FILE_UPLOAD_NOTION_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ filename, content_type: contentType }),
+  });
+  if (!uploadRes.ok) {
+    throw new Error(`Notion file_uploads create failed (${uploadRes.status}): ${await uploadRes.text()}`);
+  }
+  const { id: fileUploadId, upload_url: uploadUrl } = await uploadRes.json();
+
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(buffer)], { type: contentType }), filename);
+  const sendRes = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+      "Notion-Version": FILE_UPLOAD_NOTION_VERSION,
+    },
+    body: form,
+  });
+  if (!sendRes.ok) {
+    throw new Error(`Notion file_uploads send failed (${sendRes.status}): ${await sendRes.text()}`);
+  }
+
+  await updatePage(pageId, {
+    [property]: { files: [{ type: "file_upload", file_upload: { id: fileUploadId } }] },
+  });
+}
+
 // --- Property readers (Notion's REST shape is verbose; these flatten it) ---
 
 export function text(page: NotionPage, prop: string): string {

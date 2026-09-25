@@ -137,6 +137,13 @@ type StudioState = {
   // a normal first-time configuration.
   editingCartIndex: number | null;
 
+  // Self-attested military/veteran discount checkbox (punch list #33). Applies
+  // to the whole order, not per-gem — one checkbox in the cart, not one per
+  // item. The actual 10% Shopify discount-code application is blocked on #34
+  // (live Shopify checkout); this only tracks the customer's checkbox state
+  // today so the UI half can ship ahead of that.
+  militaryDiscount: boolean;
+
   setInMemoryOf: (v: { firstName: string; lastName: string; birthYear: string; deathYear: string }) => void;
   setCatalogData: (stones: Stone[], symbols: Symbol[]) => void;
   chooseBeginWith: (choice: BeginChoice) => void;
@@ -162,6 +169,7 @@ type StudioState = {
   removeFromCart: (index: number) => void;
   setCartQuantity: (index: number, quantity: number) => void;
   editCartItem: (index: number) => void;
+  setMilitaryDiscount: (v: boolean) => void;
 };
 
 // "Never show a customer a choice they don't have" — if a step's available
@@ -229,6 +237,7 @@ const INITIAL: Pick<
   | "declinedInitials"
   | "cartViewReturnStep"
   | "editingCartIndex"
+  | "militaryDiscount"
 > = {
   firstName: "",
   lastName: "",
@@ -251,6 +260,7 @@ const INITIAL: Pick<
   declinedInitials: false,
   cartViewReturnStep: null,
   editingCartIndex: null,
+  militaryDiscount: false,
 };
 
 export const useStudioStore = create<StudioState>()(
@@ -305,7 +315,10 @@ export const useStudioStore = create<StudioState>()(
       setSymbol: (s) => set({ symbol: s }),
       setInlayColor: (c) => set({ inlayColor: c }),
       setLetteringStyle: (l) => set({ letteringStyle: l }),
-      setInitials: (v) => set({ initials: v.slice(0, 3).toUpperCase() }),
+      // Case is preserved on purpose: each letter can be engraved capital or
+      // lowercase (e.g. "Mom"). The Dedication screen decides the default case
+      // for newly typed letters; this just stores what it hands over.
+      setInitials: (v) => set({ initials: v.slice(0, 3) }),
 
       // Checking the opt-out clears anything already typed, so a stray leftover
       // character can't reach the engraver after the customer said "no initials".
@@ -485,6 +498,8 @@ export const useStudioStore = create<StudioState>()(
           editingCartIndex: index,
         });
       },
+
+      setMilitaryDiscount: (v) => set({ militaryDiscount: v }),
     }),
     {
       name: "rmg-studio-cart",

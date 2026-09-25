@@ -4,6 +4,7 @@ import { getConfiguratorCopy, copyText } from "@/lib/notion/configuratorCopy";
 import { calculatePrice, resolveAddOns, type ResolvedAddOn } from "@/lib/studio/pricing";
 import { hasShopifyCheckout } from "@/lib/shopify/client";
 import { createShopifyCheckout, ShopifyCatalogOutOfSyncError } from "@/lib/shopify/checkout";
+import { uploadGemRenderToShopify } from "@/lib/shopify/files";
 import type { ShapeName, OrderInput } from "@/lib/notion/types";
 
 type GemBody = {
@@ -39,6 +40,17 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const gems: GemBody[] = body.gems;
   const customer: CustomerBody = body.customer ?? {};
+  // Self-attested military/veteran discount checkbox (punch list #33) — only
+  // takes effect on the Shopify path below; the complimentary/paused path
+  // has no payment to discount.
+  const militaryDiscount: boolean = body.militaryDiscount === true;
+  // One PNG data URL per gem, per side (punch list #31), captured client-side
+  // from a same-origin, capture-safe canvas (see GemSnapshotCapture.tsx's
+  // comment on why the customer-visible canvas can't be read back directly).
+  // Missing entries are fine — the render is a nice-to-have, never
+  // load-bearing.
+  const gemRendersFront: (string | undefined)[] = Array.isArray(body.gemRendersFront) ? body.gemRendersFront : [];
+  const gemRendersBack: (string | undefined)[] = Array.isArray(body.gemRendersBack) ? body.gemRendersBack : [];
 
   const [stones, copy] = await Promise.all([getStones(), getConfiguratorCopy()]);
   const betaMode = copyText(copy, "global_beta_mode", "true") === "true";
@@ -49,7 +61,8 @@ export async function POST(req: NextRequest) {
   // Parallel to `orders` — the structured add-ons for each gem, so the Shopify
   // cart can add a real line item per upcharge instead of re-deriving them.
   const addOnsPerOrder: ResolvedAddOn[][] = [];
-  for (const gem of gems) {
+  for (let gi = 0; gi < gems.length; gi += 1) {
+    const gem = gems[gi];
     const stone = stones.find((s) => s.name === gem.stoneName);
     if (!stone) {
       return NextResponse.json({ error: `Unknown stone: ${gem.stoneName}` }, { status: 400 });
@@ -109,12 +122,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ checkoutUrl: redirectUrl });
   }
 
+  // Upload happens only once we know we're actually going to Shopify — no
+  // point spending API calls on the complimentary path above, which never
+  // sees these urls at all. Parallelized since each upload is independently
+  // slow (staged upload + fileCreate + a short poll for processing).
+  function uploadIfPresent(dataUrl: string | undefined, filename: string): Promise<string | null> {
+    if (!dataUrl?.startsWith("data:image/png;base64,")) return Promise.resolve(null);
+    const buffer = Buffer.from(dataUrl.slice("data:image/png;base64,".length), "base64");
+    return uploadGemRenderToShopify(buffer, filename);
+  }
+  // Not awaited here — passed straight through as a Promise so
+  // createShopifyCheckout can run Shopify's variant lookup at the same time
+  // instead of waiting for these uploads to finish first (see the comment
+  // on its renderUrls param).
+  const renderUrlsPromise = Promise.all(
+    orders.map(async (_, i) => {
+      const [front, back] = await Promise.all([
+        uploadIfPresent(gemRendersFront[i], `gem-render-${sharedOrderId}-${i}-front.png`),
+        uploadIfPresent(gemRendersBack[i], `gem-render-${sharedOrderId}-${i}-back.png`),
+      ]);
+      return { front, back };
+    })
+  );
+
   try {
     const { checkoutUrl } = await createShopifyCheckout({
       orders,
       addOnsPerOrder,
       orderId: sharedOrderId,
       customer,
+      militaryDiscount,
+      renderUrls: renderUrlsPromise,
     });
     // Note: unlike Square, there's no redirect back to this site after
     // payment — Shopify hosts the checkout and lands the customer on its own

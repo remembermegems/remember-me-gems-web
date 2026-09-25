@@ -118,6 +118,40 @@ export const SHAPES: ShapeMeta[] = [
     carryTypes: ["Carry It"],
     petiteAddOn: false,
   },
+  // Four shapes added 2026-09-18 (Anthony's request) — names, copy, sizes,
+  // and carry types all his own calls, not derived/guessed.
+  {
+    name: "Tall Touchstone",
+    family: "Touchstone",
+    approxSize: "15/16″ × 2 3/8″ (24 × 61 mm)",
+    description: "A longer, rounded shape with a substantial feel in the hand, made to be held or carried in a pocket.",
+    carryTypes: ["Carry It"],
+    petiteAddOn: false,
+  },
+  {
+    name: "Keepsake Tag",
+    family: "Pendant",
+    approxSize: "3/4″ × 2 1/8″ (20 × 54 mm)",
+    description: "A tall, rounded tag shape with a clean, substantial profile, made to carry with you on a keychain.",
+    carryTypes: ["Hang It"],
+    petiteAddOn: false,
+  },
+  {
+    name: "Round Touchstone",
+    family: "Touchstone",
+    approxSize: "1 1/2″ (38 mm)",
+    description: "A generous circular shape with a broad surface for a symbol or initials, made to rest easily in the hand.",
+    carryTypes: ["Carry It"],
+    petiteAddOn: false,
+  },
+  {
+    name: "Petite Circle Pendant",
+    family: "Pendant",
+    approxSize: "1 1/4″ (33 mm)",
+    description: "A smaller circular pendant with a simple, classic profile, made to be worn.",
+    carryTypes: ["Wear It"],
+    petiteAddOn: true,
+  },
 ];
 
 export const SHAPE_ADDON_PRICE = 50;
