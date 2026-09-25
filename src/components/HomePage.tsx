@@ -195,6 +195,16 @@ export async function HomePage() {
                   <NotionVideo src={upClose.videoFileUrl} />
                 ) : upClose.videoUrl ? (
                   <VideoEmbed url={upClose.videoUrl} title="Hear the story behind my gem" />
+                ) : upClose.storyText ? (
+                  <div className="h-full rounded-2xl border border-cocoa/10 p-6 flex flex-col justify-center gap-4 font-body text-cocoa/80 leading-relaxed">
+                    {upClose.storyText
+                      .split(/\n{1,}/)
+                      .map((para) => para.trim())
+                      .filter(Boolean)
+                      .map((para, i) => (
+                        <p key={i}>{para}</p>
+                      ))}
+                  </div>
                 ) : (
                   <div
                     className="aspect-video rounded-2xl bg-dusty-sky/30 text-cocoa/40 flex items-center justify-center"

@@ -24,6 +24,7 @@ function row(partial: Partial<WebsiteCopySection> & Pick<WebsiteCopySection, "pa
     imageMobileUrl: null,
     trustPoints: "",
     videoUrl: "",
+    storyText: "",
     videoFileUrl: null,
     notes: "",
     ...partial,

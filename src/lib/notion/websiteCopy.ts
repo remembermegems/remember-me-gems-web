@@ -24,6 +24,7 @@ function mapRow(page: NotionPage): WebsiteCopySection {
     imageMobileUrl: fileUrl(page, "Image Mobile"),
     trustPoints: text(page, "Trust Points"),
     videoUrl: text(page, "Video URL"),
+    storyText: text(page, "Story Text"),
     videoFileUrl: fileUrl(page, "Video"),
     notes: text(page, "Notes"),
   };

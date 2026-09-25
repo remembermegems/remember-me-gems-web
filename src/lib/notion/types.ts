@@ -52,6 +52,9 @@ export type WebsiteCopySection = {
   // Video from a platform URL (YouTube/Vimeo/TikTok/Instagram) — parsed, never
   // injected raw. See VideoEmbed.tsx.
   videoUrl: string;
+  // Plain-text stand-in shown where the Up Close video goes until a video is
+  // set (Notion "Story Text"). A video, once added, takes over automatically.
+  storyText: string;
   // Video uploaded straight into Notion (Files & media). Most robust option;
   // MP4/H.264 only — .mov won't play in Chrome or Firefox.
   videoFileUrl: string | null;
