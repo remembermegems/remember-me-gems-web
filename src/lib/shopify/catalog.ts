@@ -88,7 +88,7 @@ export function buildCatalogPlan(stones: Stone[], betaMode: boolean): CatalogPro
     ...upcharges.map<CatalogProduct>((amount) => ({
       kind: "addon",
       handle: handleFor(`touchstone upcharge ${amount}`, "rmg-addon"),
-      title: `Touchstone upcharge ($${amount})`,
+      title: `Touchstone option ($${amount})`,
       sku: addOnSku("touchstone", amount),
       price: amount,
       description: "Additional cost for the larger touchstone size on this gemstone.",

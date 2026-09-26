@@ -29,7 +29,7 @@ export function resolveAddOns({ stone, shape, carryType, customSymbolAddOn }: Pr
   if (carryType === "Carry It" && stone.touchstoneUpcharge > 0) {
     addOns.push({
       kind: "touchstone",
-      label: `Touchstone upcharge (+$${stone.touchstoneUpcharge})`,
+      label: `Touchstone option (+$${stone.touchstoneUpcharge})`,
       amount: stone.touchstoneUpcharge,
     });
   }
