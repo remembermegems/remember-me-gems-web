@@ -82,6 +82,7 @@ function ordersFromShopify(order: ShopifyOrder, sharedOrderId: string): OrderInp
         totalPrice: Number(p._total_price ?? 0),
         channel: "Web",
         orderId: sharedOrderId,
+        shopifyOrderNumber: order.name,
         betaMode: p._beta_mode === "true",
         // Shipping details come from Shopify's own checkout, not from the
         // address we collected earlier — Shopify's is what the customer

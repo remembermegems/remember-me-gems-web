@@ -7,6 +7,7 @@ const ALL_SHAPES = [
   "Teardrop", "Classic Oval", "Slim Oval", "Keepsake Rectangle", "Tall Rectangle",
   "Petite Rectangle", "Keepsake Square", "Dog Tag", "Petite Dog Tag", "Arrow",
   "Shield", "Oval Touchstone", "Dog Tag Touchstone",
+  "Tall Touchstone", "Keepsake Tag", "Round Touchstone", "Petite Circle Pendant",
 ];
 
 function sym(partial: Omit<Symbol, "id" | "viewBox" | "compatibleShapes"> & { compatibleShapes?: string[] }): Symbol {

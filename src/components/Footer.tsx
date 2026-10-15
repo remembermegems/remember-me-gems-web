@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { copyText } from "@/lib/notion/configuratorCopy";
 
 type SymbolPath = { path: string; viewBox: string };
 
@@ -33,7 +34,19 @@ const COLUMNS = [
   },
 ];
 
-export function Footer({ eternalLoveSymbol }: { eternalLoveSymbol?: SymbolPath | null }) {
+export function Footer({
+  eternalLoveSymbol,
+  copy,
+}: {
+  eternalLoveSymbol?: SymbolPath | null;
+  copy: Record<string, string>;
+}) {
+  const tagline = copyText(copy, "footer_tagline", "Keep them close.");
+  const phoneDisplay = copyText(copy, "footer_phone_display", "505-808-GEMS");
+  const phoneTel = copyText(copy, "footer_phone_tel", "+15058084367");
+  const email = copyText(copy, "footer_email", "careteam@remembermegems.com");
+  const petsTeaser = copyText(copy, "footer_pets_teaser", "Remember Me Pets — coming soon");
+
   return (
     <footer className="bg-cocoa">
       <div className="max-w-[960px] mx-auto px-6 py-16 grid grid-cols-1 sm:grid-cols-4 gap-10">
@@ -44,18 +57,18 @@ export function Footer({ eternalLoveSymbol }: { eternalLoveSymbol?: SymbolPath |
             </svg>
           )}
           <p className="font-heading text-lg text-warm-white mb-2">Remember Me Gems</p>
-          <p className="text-sm text-warm-white/70 italic mb-4">Keep them close.</p>
+          <p className="text-sm text-warm-white/70 italic mb-4">{tagline}</p>
           <p className="text-sm text-warm-white/70">
-            <a href="tel:+15058084367" className="hover:text-warm-white">
-              505-808-GEMS
+            <a href={`tel:${phoneTel}`} className="hover:text-warm-white">
+              {phoneDisplay}
             </a>
           </p>
           <p className="text-sm text-warm-white/70">
-            <a href="mailto:careteam@remembermegems.com" className="hover:text-warm-white">
-              careteam@remembermegems.com
+            <a href={`mailto:${email}`} className="hover:text-warm-white">
+              {email}
             </a>
           </p>
-          <p className="text-sm text-warm-white/50 mt-4">Remember Me Pets — coming soon</p>
+          <p className="text-sm text-warm-white/50 mt-4">{petsTeaser}</p>
         </div>
         {COLUMNS.map((col) => (
           <div key={col.title}>

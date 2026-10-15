@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useStudioStore, cartQuantity, cartLineTotal } from "@/store/studio";
 import { GemCanvas } from "../GemCanvas";
 import { SectionDivider } from "@/components/SectionDivider";
@@ -42,6 +42,16 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
   const [collectingAddress, setCollectingAddress] = useState(false);
   const [address, setAddress] = useState<AddressForm>(EMPTY_ADDRESS);
 
+  // Gem-render capture (punch list #31) — one PNG per distinct cart row,
+  // captured in the background as soon as the cart renders so it's ready by
+  // the time "Start checkout" is pressed, without making the customer wait
+  // on it. Keyed by cart index (not by physical-piece count) since identical
+  // quantity copies share one render — expanded out to match `gems` only
+  // when building the checkout request body below.
+  const renderCaptures = useRef<Record<number, { front?: string; back?: string }>>({});
+  const captureCanvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
+  const captureCanvasRefsBack = useRef<Record<number, HTMLCanvasElement | null>>({});
+
   const grandTotal = store.cart.reduce((sum, g) => sum + cartLineTotal(g), 0);
 
   const addressValid =
@@ -71,6 +81,13 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
       })),
     });
     try {
+      // Give any still-rendering capture canvas a few seconds to finish, so a
+      // quick click-through doesn't send an order with no gem images.
+      for (let waited = 0; waited < 4000; waited += 250) {
+        const allCaptured = store.cart.every((_, i) => renderCaptures.current[i]?.front && renderCaptures.current[i]?.back);
+        if (allCaptured) break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
       const res = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,6 +114,17 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
             }))
           ),
           customer: address,
+          militaryDiscount: store.militaryDiscount,
+          // Expanded to line up 1:1 with `gems` above — every copy of a
+          // repeated quantity gets the same captured renders, since they're
+          // identical pieces. Missing/uncaptured entries become undefined,
+          // which the API route already treats as "skip this one."
+          gemRendersFront: store.cart.flatMap((g, i) =>
+            Array.from({ length: cartQuantity(g) }, () => renderCaptures.current[i]?.front)
+          ),
+          gemRendersBack: store.cart.flatMap((g, i) =>
+            Array.from({ length: cartQuantity(g) }, () => renderCaptures.current[i]?.back)
+          ),
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -108,6 +136,75 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
       setSubmitting(false);
     }
   }
+
+  // Hidden, capture-only canvases (punch list #31). Defined once and rendered
+  // in EVERY view below: they used to live only in the cart-list view, so
+  // opening the address form unmounted them, and any render not captured by
+  // that moment was lost for good (the order then had no gem images in its
+  // confirmation email — seen on the beta site, 2026-09-23).
+  const captureCanvases = (
+  <div aria-hidden style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", left: -9999, top: -9999 }}>
+    {store.cart.map((g, i) => (
+      <GemCanvas
+        key={i}
+        shape={g.shape}
+        stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
+        stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
+        inlayColor={g.inlayColor}
+        symbol={g.symbol ? { name: g.symbol.name, path: g.symbol.svgPathData, viewBox: g.symbol.viewBox } : null}
+        side="front"
+        maxWidth={480}
+        canvasRef={{
+          get current() {
+            return captureCanvasRefs.current[i] ?? null;
+          },
+          set current(el: HTMLCanvasElement | null) {
+            captureCanvasRefs.current[i] = el;
+          },
+        }}
+        onRender={() => {
+          const canvas = captureCanvasRefs.current[i];
+          if (!canvas || renderCaptures.current[i]?.front) return;
+          try {
+            renderCaptures.current[i] = { ...renderCaptures.current[i], front: canvas.toDataURL("image/png") };
+          } catch (err) {
+            console.warn("[CartScreen] gem render capture failed", err);
+          }
+        }}
+      />
+    ))}
+    {store.cart.map((g, i) => (
+      <GemCanvas
+        key={`back-${i}`}
+        shape={g.shape}
+        stoneColor={stoneSwatchColor(g.stone.name, g.stone.colorFamily)}
+        stoneImageUrl={g.stone.stoneImageUrl ? `/api/studio/image-proxy?url=${encodeURIComponent(g.stone.stoneImageUrl)}` : null}
+        inlayColor={g.inlayColor}
+        initials={g.initials}
+        letteringStyle={g.letteringStyle}
+        side="back"
+        maxWidth={480}
+        canvasRef={{
+          get current() {
+            return captureCanvasRefsBack.current[i] ?? null;
+          },
+          set current(el: HTMLCanvasElement | null) {
+            captureCanvasRefsBack.current[i] = el;
+          },
+        }}
+        onRender={() => {
+          const canvas = captureCanvasRefsBack.current[i];
+          if (!canvas || renderCaptures.current[i]?.back) return;
+          try {
+            renderCaptures.current[i] = { ...renderCaptures.current[i], back: canvas.toDataURL("image/png") };
+          } catch (err) {
+            console.warn("[CartScreen] gem back-render capture failed", err);
+          }
+        }}
+      />
+    ))}
+  </div>
+  );
 
   // Once checkout starts, clearCart() wipes the cart that this screen reads
   // from — but the redirect (a real page navigation, sometimes to an external
@@ -124,6 +221,7 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
   if (collectingAddress) {
     return (
       <div className="max-w-[560px] mx-auto px-6 py-16">
+        {captureCanvases}
         <div className="text-center mb-10">
           <h2 className="font-heading text-3xl text-cocoa mb-2" style={{ color: "#4E3F35" }}>
             {copyText(copy, "cart_address_headline", "Where should we send it?")}
@@ -232,6 +330,8 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
 
   return (
     <div className="max-w-[720px] mx-auto px-6 py-16">
+      {captureCanvases}
+
       <div className="text-center mb-10">
         <h2 className="font-heading text-3xl text-cocoa mb-2" style={{ color: "#4E3F35" }}>
           {store.cart.length === 0
@@ -324,9 +424,35 @@ export function CartScreen({ copy }: { copy: Record<string, string> }) {
       </div>
 
       {store.cart.length > 0 && (
-        <div className="text-center mb-8">
-          <p className="font-heading text-3xl text-cocoa">${grandTotal}</p>
-        </div>
+        <>
+          {/* Self-attested military/veteran discount (punch list #33) — one
+              checkbox for the whole order, not per-gem. No verification
+              vendor, matches the brand's trust-based tone rather than
+              treating customers as suspects. Applies a real Shopify discount
+              code (MILITARY10) at checkout creation — see createShopifyCheckout
+              in lib/shopify/checkout.ts — but can't actually be exercised
+              until #34 reconnects a live store (checkout is paused until
+              then). */}
+          <label className="flex items-center justify-center gap-2 mb-6 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={store.militaryDiscount}
+              onChange={(e) => store.setMilitaryDiscount(e.target.checked)}
+              className="w-4 h-4 rounded border-cocoa/30 text-gold focus:ring-gold"
+            />
+            <span className="font-body text-sm text-cocoa/80">
+              {copyText(
+                copy,
+                "cart_military_discount_label",
+                "I am an active-duty or veteran service member (10% discount applied at checkout)"
+              )}
+            </span>
+          </label>
+
+          <div className="text-center mb-8">
+            <p className="font-heading text-3xl text-cocoa">${grandTotal}</p>
+          </div>
+        </>
       )}
 
       {error && <p className="text-center text-red-600 text-sm mb-4">{error}</p>}
